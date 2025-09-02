@@ -1,0 +1,27 @@
+# Ignore node_modules
+node_modules/
+
+# Ignore package-lock.json (optional, depending on your workflow)
+package-lock.json
+
+# Ignore build output (e.g., from Webpack)
+dist/
+build/
+
+# Ignore log files
+*.log
+
+# Ignore IDE/config files
+.idea/
+*.swp
+*.sublime-project
+*.sublime-workspace
+
+# Ignore environment variables
+.env
+
+# Ignore Babel cache (if applicable)
+.babelcache
+
+# Ignore Webpack cache (if applicable)
+webpack-cache/
