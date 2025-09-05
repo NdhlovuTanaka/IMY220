@@ -1,0 +1,540 @@
+:root {
+  /* Light Mode Colors - incorporating logo blue */
+  --lz-primary: #4a90e2; /* Logo blue */
+  --lz-primary-dark: #357abd; /* Darker blue for hover states */
+  --lz-background: #ffffff; /* Pure white background */
+  --lz-surface: #f8fafc; /* Light gray surface */
+  --lz-surface-elevated: #ffffff; /* White elevated surfaces */
+  --lz-text-primary: #1e293b; /* Dark text */
+  --lz-text-secondary: #64748b; /* Muted text */
+  --lz-text-muted: #94a3b8; /* Very muted text */
+  --lz-border: #e2e8f0; /* Light borders */
+  --lz-border-hover: #cbd5e1; /* Darker borders on hover */
+  --lz-accent: #4a90e2; /* Use blue for accent */
+  --lz-accent-light: #3285df; /* Lighter blue */
+  --lz-purple: #60a5f0; /* Purple for dark mode buttons */
+  --lz-success: #10b981;
+  --lz-error: #ef4444;
+  --lz-warning: #f59e0b;
+  --lz-white: #ffffff; /* Added for consistency */
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMO-Regular, Menlo, monospace;
+}
+
+[data-theme="dark"] {
+  /* Improved dark mode colors with better contrast */
+  --lz-primary: #4a90e2; /* Blue primary in dark mode */
+  --lz-primary-dark: #357abd; /* Darker blue */
+  --lz-background: #0f0f0f; /* Slightly lighter dark background */
+  --lz-surface: #1a1a1a; /* Lighter dark surface for better contrast */
+  --lz-surface-elevated: #242424; /* More elevated surface */
+  --lz-text-primary: #ffffff; /* Pure white text for maximum contrast */
+  --lz-text-secondary: #b3b3b3; /* Lighter muted text */
+  --lz-text-muted: #808080; /* Better contrast for muted text */
+  --lz-border: #333333; /* Lighter borders for visibility */
+  --lz-border-hover: #444444; /* Even lighter borders on hover */
+  --lz-accent: #4a90e2; /* Blue accent in dark mode */
+  --lz-accent-light: #60a5f0; /* Lighter blue */
+  --lz-purple: #6e44ff; /* Purple for dark mode buttons */
+  --lz-success: #10b981;
+  --lz-error: #ef4444;
+  --lz-warning: #f59e0b;
+  --lz-white: #ffffff; /* Ensure white text in dark mode */
+
+  /* File items fix */
+  .file-item,
+  .project-file {
+    background: #2a2a2a; /* Slightly lighter dark background */
+    color: #e0e0e0; /* Lighter text color for better contrast */
+  }
+
+  /* Message box fix */
+  .messages,
+  .activity-description {
+    background: #2a2a2a; /* Distinct background */
+    color: #e0e0e0; /* Readable text color */
+    border: 1px solid #444444;
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  /* Feed toggle fix */
+  .feed-toggle button:not(.active) {
+    color: #b3b3b3; /* Lighter muted text */
+    background: var(--lz-surface);
+  }
+  .feed-toggle button:not(.active):hover {
+    color: #ffffff; /* White text on hover */
+    background: var(--lz-surface-elevated);
+  }
+
+  /* Activity message fix */
+  .activity-item p {
+    background: #2a2a2a;
+    color: #e0e0e0;
+    padding: 8px;
+    border-radius: 4px;
+  }
+
+  /* Dark mode button override to purple */
+  .btn-primary {
+    background: var(--lz-purple);
+  }
+  .btn-primary:hover {
+    background: #5b37d4; /* Darker purple for hover */
+  }
+
+  .btn-accent {
+    background: var(--lz-purple);
+  }
+  .btn-accent:hover {
+    background: #5b37d4; /* Darker purple for hover */
+  }
+
+  .feed-toggle button.active {
+    background: var(--lz-purple);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.lz-body {
+  margin: 0;
+  background: var(--lz-background);
+  color: var(--lz-text-primary);
+  font-family: var(--font-sans);
+}
+
+/* Simplified header with less fancy effects */
+.lz-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--lz-border);
+  position: sticky;
+  top: 0;
+  background: var(--lz-surface-elevated);
+  z-index: 100;
+}
+
+.lz-logo {
+  font-weight: 800;
+  text-decoration: none;
+  color: var(--lz-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lz-logo:hover {
+  color: var(--lz-primary);
+}
+
+.lz-logo img {
+  width: 120px;
+  height: 32px;
+}
+
+/* Improved navigation styles */
+.lz-nav {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+  align-items: center;
+}
+
+.lz-nav a {
+  color: var(--lz-text-secondary);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px; /* Less rounded for natural look */
+}
+
+.lz-nav a:hover {
+  color: var(--lz-primary);
+  background: var(--lz-surface);
+}
+
+.lz-nav a.active {
+  color: var(--lz-primary);
+  background: var(--lz-surface);
+}
+
+/* Simplified button styles with natural feel */
+button {
+  font: inherit;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 6px; /* Less rounded */
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: var(--lz-primary); /* Blue in light mode */
+  color: var(--lz-white);
+}
+
+.btn-primary:hover {
+  background: var(--lz-primary-dark);
+}
+
+.btn-secondary {
+  background: var(--lz-surface);
+  color: var(--lz-text-primary);
+  border: 1px solid var(--lz-border);
+}
+
+.btn-secondary:hover {
+  background: var(--lz-surface-elevated);
+  border-color: var(--lz-border-hover);
+}
+
+.btn-accent {
+  background: var(--lz-accent); /* Blue in light mode */
+  color: var(--lz-white);
+}
+
+.btn-accent:hover {
+  background: var(--lz-accent-light);
+}
+
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Simplified form inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="url"],
+select,
+textarea {
+  width: 100%;
+  background: var(--lz-surface);
+  border: 1px solid var(--lz-border);
+  color: var(--lz-text-primary);
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px; /* Less rounded */
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--lz-primary);
+}
+
+label {
+  display: block;
+  margin: 0.6rem 0 0.2rem;
+  color: var(--lz-text-secondary);
+  font-weight: 500;
+}
+
+/* Enhanced main content area */
+main {
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+}
+
+/* Simplified card styles with natural shadows */
+.card {
+  background: var(--lz-surface-elevated);
+  border: 1px solid var(--lz-border);
+  border-radius: 8px; /* Less rounded */
+  padding: 16px;
+}
+
+.card:hover {
+  border-color: var(--lz-border-hover);
+}
+
+[data-theme="dark"] .card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .card {
+  background: #f8f8ff; /* Light background for cards */
+  border: 1px solid #dcdcdc;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Enhanced status indicators */
+.status-in {
+  background: var(--lz-success);
+  color: var(--lz-white);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-out {
+  background: var(--lz-error);
+  color: var(--lz-white);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Simplified theme toggle */
+.theme-toggle {
+  background: var(--lz-surface);
+  border: 1px solid var(--lz-border);
+  color: var(--lz-text-primary);
+  padding: 0.5rem;
+  border-radius: 6px; /* Less rounded */
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--lz-surface-elevated);
+  border-color: var(--lz-primary);
+}
+
+/* Enhanced search input */
+.search-container {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  background: var(--lz-surface);
+  border: 1px solid var(--lz-border);
+  border-radius: 8px; /* Less rounded */
+  font-size: 1rem;
+}
+
+.search-input:focus {
+  border-color: var(--lz-primary);
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--lz-text-muted);
+}
+
+/* Feed toggle buttons */
+.feed-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.feed-toggle button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px; /* Less rounded */
+  font-weight: 500;
+}
+
+.feed-toggle button.active {
+  background: var(--lz-primary); /* Blue in light mode */
+  color: var(--lz-white);
+}
+
+.feed-toggle button:not(.active) {
+  background: var(--lz-surface);
+  color: var(--lz-text-secondary);
+  border: 1px solid var(--lz-border);
+}
+
+/* Project card specific styling */
+.project-card {
+  background: var(--lz-surface-elevated);
+  border: 1px solid var(--lz-border);
+  border-radius: 8px;
+  padding: 16px;
+  color: var(--lz-text-primary);
+}
+
+.project-card .project-description {
+  background: var(--lz-surface);
+  color: var(--lz-text-secondary);
+  padding: 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+  border: 1px solid var(--lz-border);
+}
+
+.project-card .project-meta {
+  background: var(--lz-surface);
+  color: var(--lz-text-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+/* File items styling */
+.file-item,
+.project-file {
+  background: var(--lz-surface);
+  color: var(--lz-text-primary);
+  border: 1px solid var(--lz-border);
+  padding: 12px;
+  border-radius: 6px;
+  margin: 4px 0;
+}
+
+.file-item:hover,
+.project-file:hover {
+  background: var(--lz-surface-elevated);
+  border-color: var(--lz-border-hover);
+}
+
+[data-theme="light"] .file-item {
+  background: #ffffff; /* Light background for files */
+  border: 1px solid #dcdcdc;
+}
+
+/* Project files section */
+.project-files {
+  background: var(--lz-surface);
+  border: 1px solid var(--lz-border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.project-files h3 {
+  color: var(--lz-text-primary);
+  margin: 0 0 12px 0;
+}
+
+/* Activity feed items */
+.activity-item {
+  background: var(--lz-surface-elevated);
+  border: 1px solid var(--lz-border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.activity-item .activity-header {
+  color: var(--lz-text-primary);
+  margin-bottom: 8px;
+}
+
+.activity-item .activity-description {
+  background: var(--lz-surface);
+  color: var(--lz-text-secondary);
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--lz-border);
+  font-style: italic;
+}
+
+.activity-item .activity-meta {
+  background: var(--lz-surface);
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+  border: 1px solid var(--lz-border);
+}
+
+/* Tab navigation */
+.tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--lz-border);
+}
+
+.tab-nav button {
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--lz-text-secondary);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.tab-nav button.active {
+  color: var(--lz-primary);
+  border-bottom-color: var(--lz-primary);
+  background: var(--lz-white); /* Changed active tab background to white */
+}
+
+.tab-nav button:hover:not(.active) {
+  color: var(--lz-text-primary);
+}
+
+/* Dark mode specific overrides for better contrast */
+[data-theme="dark"] .feed-toggle button:not(.active) {
+  color: var(--lz-text-secondary);
+  background: var(--lz-surface);
+}
+
+[data-theme="dark"] .feed-toggle button:not(.active):hover {
+  color: var(--lz-text-primary);
+  background: var(--lz-surface-elevated);
+}
+
+[data-theme="dark"] .tab-nav button {
+  color: var(--lz-text-secondary);
+}
+
+[data-theme="dark"] .tab-nav button.active {
+  color: var(--lz-primary);
+  background: var(--lz-white); /* White background in dark mode for active tab */
+}
+
+[data-theme="dark"] .tab-nav button:hover:not(.active) {
+  color: var(--lz-text-primary);
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+  .lz-header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+
+  .lz-nav {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  main {
+    padding: 16px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

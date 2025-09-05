@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 //Setting a Static Frontend
-const publicDir = path.join(__dirname, "..", "frontend", "public");
+const publicDir = path.join(__dirname, "..", "..", "frontend", "public");
 app.use(express.static(publicDir));
 
 //Auth --stubs--
