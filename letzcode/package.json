@@ -1,5 +1,5 @@
 {
-  "name": "letzcode-version-control",
+  "name": "letzcode",
   "version": "1.0.0",
   "description": "A modern version control website for code collaboration and project management",
   "main": "backend/src/server.js",
@@ -30,7 +30,7 @@
     "mongodb",
     "file-sharing"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Ndhlovu Tanaka u22610792",
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
@@ -101,10 +101,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/letzcode-version-control.git"
-  },
-  "bugs": {
-    "url": "https://github.com/yourusername/letzcode-version-control/issues"
-  },
-  "homepage": "https://github.com/yourusername/letzcode-version-control#readme"
+    "url": "https://github.com/NdhlovuTanaka/IMY220"
+  }
 }

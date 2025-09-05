@@ -31,7 +31,7 @@ const ProjectPage = ({ currentUser }) => {
     checkedOutBy: null,
     createdAt: "2024-07-15T10:00:00Z",
     lastUpdated: "2024-09-03T14:30:00Z",
-    image: "/public/assets/images/icon.png",
+    image: "./public/assets/images/icon.png",
     files: [
       {
         id: 1,
@@ -150,8 +150,34 @@ export const apiClient = {
         size: "3.5 KB",
         lastModified: "2024-08-28",
         uploadedBy: "John Doe",
-        content: 
+        content: `# React Dashboard Pro
 
+A comprehensive admin dashboard built with React, TypeScript, and modern UI components.
+
+## Features
+
+- Real-time analytics and data visualization
+- User management system
+- Responsive design
+- Modern UI components
+- TypeScript support
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: \`npm install\`
+3. Start the development server: \`npm start\`
+4. Open http://localhost:3000 to view it in the browser
+
+## Project Structure
+
+- \`src/components/\` - Reusable React components
+- \`src/utils/\` - Utility functions and API clients
+- \`src/styles/\` - CSS and styling files
+
+## Contributing
+
+Please read our contributing guidelines before submitting pull requests.`,
       },
     ],
     messages: [

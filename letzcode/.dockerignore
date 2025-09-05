@@ -1,0 +1,9 @@
+# filepath: c:\Users\User\Documents\GitHub\IMY220\.dockerignore
+
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
