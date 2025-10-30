@@ -5,7 +5,9 @@ export async function signup(credentials) {
     try {
         const res = await fetch("/api/auth/signup", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(credentials)
         });
         
@@ -14,16 +16,16 @@ export async function signup(credentials) {
         if (!res.ok) {
             return {
                 ok: false,
-                message: data.message || "Sign up failed"
+                message: data.message || "Signup failed"
             };
         }
         
         return data;
     } catch (error) {
-        console.error("API signup error:", error);
+        console.error("Signup error:", error);
         return {
             ok: false,
-            message: "Network error. Please check your connection."
+            message: "Network error"
         };
     }
 }
@@ -32,7 +34,9 @@ export async function signin(credentials) {
     try {
         const res = await fetch("/api/auth/signin", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(credentials)
         });
         
@@ -41,24 +45,27 @@ export async function signin(credentials) {
         if (!res.ok) {
             return {
                 ok: false,
-                message: data.message || "Sign in failed"
+                message: data.message || "Login failed"
             };
         }
         
         return data;
     } catch (error) {
-        console.error("API signin error:", error);
+        console.error("Signin error:", error);
         return {
             ok: false,
-            message: "Network error. Please check your connection."
+            message: "Network error"
         };
     }
 }
 
-export async function getCurrentUser(){
+export async function getCurrentUser() {
     try {
         const token = localStorage.getItem("token");
-        if (!token) return null;
+        if (!token) {
+            console.log('No token found in localStorage');
+            return null;
+        }
         
         const res = await fetch("/api/auth/me", {
             headers: {
@@ -66,12 +73,21 @@ export async function getCurrentUser(){
             }
         });
         
-        if (!res.ok) return null;
+        if (!res.ok) {
+            console.log('Failed to get current user, status:', res.status);
+            // Clear invalid token
+            localStorage.removeItem("token");
+            localStorage.removeItem("userId");
+            return null;
+        }
         
         const data = await res.json();
         return data.user;
     } catch (error) {
         console.error("Get current user error:", error);
+        // Clear token on error
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
         return null;
     }
 }
@@ -755,6 +771,97 @@ export async function deleteNotification(notificationId) {
         return data;
     } catch (error) {
         console.error("Delete notification error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function addProjectFiles(projectId, files) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/projects/${projectId}/files`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ files })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to add files"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Add files error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function addProjectMember(projectId, userId, role = 'member') {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/projects/${projectId}/members`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ userId, role })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to add member"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Add member error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function removeProjectMember(projectId, memberId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/projects/${projectId}/members/${memberId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to remove member"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Remove member error:", error);
         return {
             ok: false,
             message: "Network error"

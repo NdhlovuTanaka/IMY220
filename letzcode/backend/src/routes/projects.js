@@ -439,4 +439,201 @@ router.post('/:projectId/checkin', authenticate, async (req, res) => {
   }
 });
 
+// @route   POST /api/projects/:projectId/files
+// @desc    Add files to project
+// @access  Private (Members only)
+router.post('/:projectId/files', authenticate, async (req, res) => {
+  try {
+    const { files } = req.body; // Array of {name, size, content}
+
+    const project = await Project.findById(req.params.projectId);
+
+    if (!project) {
+      return res.status(404).json({
+        ok: false,
+        message: 'Project not found'
+      });
+    }
+
+    // Check if user is a member
+    const isMember = project.members.some(m => m.toString() === req.user._id.toString());
+    if (!isMember) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Only project members can add files'
+      });
+    }
+
+    // Add files
+    if (files && Array.isArray(files)) {
+      const newFiles = files.map(file => ({
+        name: file.name,
+        size: file.size,
+        path: `/${file.name}`,
+        uploadedBy: req.user._id
+      }));
+
+      project.files.push(...newFiles);
+      await project.save();
+    }
+
+    await project.populate('files.uploadedBy', 'name username');
+
+    res.json({
+      ok: true,
+      message: 'Files added successfully',
+      project
+    });
+
+  } catch (error) {
+    console.error('Add files error:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Error adding files'
+    });
+  }
+});
+
+// @route   POST /api/projects/:projectId/members
+// @desc    Add member to project
+// @access  Private (Owner and existing members can add friends)
+router.post('/:projectId/members', authenticate, async (req, res) => {
+  try {
+    const { userId, role } = req.body; // role: 'member' or 'admin'
+
+    if (!userId) {
+      return res.status(400).json({
+        ok: false,
+        message: 'User ID is required'
+      });
+    }
+
+    const project = await Project.findById(req.params.projectId);
+
+    if (!project) {
+      return res.status(404).json({
+        ok: false,
+        message: 'Project not found'
+      });
+    }
+
+    // Check if current user is member or owner
+    const isOwner = project.owner.toString() === req.user._id.toString();
+    const isMember = project.members.some(m => m.toString() === req.user._id.toString());
+
+    if (!isOwner && !isMember) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Only project owner and members can add new members'
+      });
+    }
+
+    // Check if user to be added is a friend
+    const currentUser = await User.findById(req.user._id);
+    const isFriend = currentUser.friends.some(f => f.toString() === userId);
+
+    if (!isFriend && !isOwner) {
+      return res.status(403).json({
+        ok: false,
+        message: 'You can only add friends to the project'
+      });
+    }
+
+    // Check if user is already a member
+    if (project.members.some(m => m.toString() === userId)) {
+      return res.status(400).json({
+        ok: false,
+        message: 'User is already a member of this project'
+      });
+    }
+
+    // Add member
+    project.members.push(userId);
+    await project.save();
+
+    // Create activity
+    const newMember = await User.findById(userId);
+    const activity = new Activity({
+      type: 'update',
+      user: req.user._id,
+      project: project._id,
+      message: `Added ${newMember.name} to the project`
+    });
+    await activity.save();
+
+    await project.populate('owner', 'name username email profileImage');
+    await project.populate('members', 'name username email profileImage');
+
+    res.json({
+      ok: true,
+      message: 'Member added successfully',
+      project
+    });
+
+  } catch (error) {
+    console.error('Add member error:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Error adding member'
+    });
+  }
+});
+
+// @route   DELETE /api/projects/:projectId/members/:memberId
+// @desc    Remove member from project
+// @access  Private (Owner only)
+router.delete('/:projectId/members/:memberId', authenticate, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.projectId);
+
+    if (!project) {
+      return res.status(404).json({
+        ok: false,
+        message: 'Project not found'
+      });
+    }
+
+    // Check if user is owner
+    if (project.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Only the project owner can remove members'
+      });
+    }
+
+    // Cannot remove owner
+    if (project.owner.toString() === req.params.memberId) {
+      return res.status(400).json({
+        ok: false,
+        message: 'Cannot remove the project owner'
+      });
+    }
+
+    // Remove member
+    project.members = project.members.filter(m => m.toString() !== req.params.memberId);
+    await project.save();
+
+    const removedMember = await User.findById(req.params.memberId);
+    const activity = new Activity({
+      type: 'update',
+      user: req.user._id,
+      project: project._id,
+      message: `Removed ${removedMember.name} from the project`
+    });
+    await activity.save();
+
+    res.json({
+      ok: true,
+      message: 'Member removed successfully'
+    });
+
+  } catch (error) {
+    console.error('Remove member error:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Error removing member'
+    });
+  }
+});
+
 module.exports = router;

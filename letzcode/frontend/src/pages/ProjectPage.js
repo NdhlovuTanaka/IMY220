@@ -1,723 +1,532 @@
-import React from "react"
-import { useState, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { 
+  getProject, 
+  checkoutProject, 
+  checkinProject, 
+  deleteProject,
+  addProjectFiles,
+  addProjectMember,
+  removeProjectMember,
+  getFriends
+} from "../api";
+import { showToast } from "../utils/toast";
 
 const ProjectPage = ({ currentUser }) => {
-  const { projectId } = useParams()
-  const [project, setProject] = useState(null)
-  const [activeTab, setActiveTab] = useState("overview")
-  const [checkInMessage, setCheckInMessage] = useState("")
-  const [newVersion, setNewVersion] = useState("")
-  const [viewingFile, setViewingFile] = useState(null)
-  const [showAddMember, setShowAddMember] = useState(false)
-  const [newMemberEmail, setNewMemberEmail] = useState("")
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+  const [project, setProject] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [checkInMessage, setCheckInMessage] = useState("");
+  const [newVersion, setNewVersion] = useState("");
+  const [showAddFiles, setShowAddFiles] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [selectedFriend, setSelectedFriend] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [isOwner, setIsOwner] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isMember, setIsMember] = useState(false)
-
-  // Dummy project data
-  const dummyProject = {
-    id: projectId,
-    name: "React Dashboard Pro",
-    description:
-      "A comprehensive admin dashboard built with React, TypeScript, and modern UI components. Features include user management, analytics, and real-time data visualization.",
-    owner: "John Doe",
-    members: ["John Doe", "Jane Smith", "Mike Johnson"],
-    languages: ["JavaScript", "TypeScript", "CSS", "HTML"],
-    type: "Web Application",
-    version: "2.1.0",
-    status: "checked-in",
-    checkedOutBy: null,
-    createdAt: "2024-07-15T10:00:00Z",
-    lastUpdated: "2024-09-03T14:30:00Z",
-    image: "./public/assets/images/icon.png",
-    files: [
-      {
-        id: 1,
-        name: "src/App.tsx",
-        size: "2.4 KB",
-        lastModified: "2024-09-03",
-        uploadedBy: "John Doe",
-        content: `import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Dashboard from './components/Dashboard';
-import './App.css';
-
-function App() {
-  return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-        </Routes>
-      </div>
-    </Router>
+  // Calculate user's role
+  const isOwner = project?.owner?._id === currentUser?.id || project?.owner?.id === currentUser?.id;
+  const isMember = project?.members?.some(m => 
+    (m._id === currentUser?.id || m.id === currentUser?.id)
   );
-}
 
-export default App;`,
-      },
-      {
-        id: 2,
-        name: "src/components/Dashboard.tsx",
-        size: "5.1 KB",
-        lastModified: "2024-09-02",
-        uploadedBy: "Jane Smith",
-        content: `import React, { useState, useEffect } from 'react';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-const Dashboard = () => {
-  const [data, setData] = useState(null);
-  
   useEffect(() => {
-    // Fetch dashboard data
-    fetchDashboardData();
-  }, []);
-  
-  const fetchDashboardData = async () => {
-    // API call simulation
-    const response = await fetch('/api/dashboard');
-    const result = await response.json();
-    setData(result);
+    fetchProject();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (showAddMember && (isOwner || isMember)) {
+      fetchFriends();
+    }
+  }, [showAddMember]);
+
+  const fetchProject = async () => {
+    setIsLoading(true);
+    const data = await getProject(projectId);
+    
+    if (data.ok) {
+      setProject(data.project);
+      setNewVersion(data.project.version);
+    } else {
+      showToast.error(data.message || "Failed to load project");
+      navigate("/home");
+    }
+    
+    setIsLoading(false);
   };
-  
-  return (
-    <div className="dashboard">
-      <h1>Analytics Dashboard</h1>
-      {data && <Bar data={data} />}
-    </div>
-  );
-};
 
-export default Dashboard;`,
-      },
-      {
-        id: 3,
-        name: "src/utils/api.ts",
-        size: "1.8 KB",
-        lastModified: "2024-09-01",
-        uploadedBy: "Mike Johnson",
-        content: `const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  const fetchFriends = async () => {
+    const data = await getFriends();
+    if (data.ok) {
+      // Filter out friends who are already members
+      const nonMembers = data.friends.filter(friend => 
+        !project.members.some(m => (m._id || m.id) === friend._id)
+      );
+      setFriends(nonMembers);
+    }
+  };
 
-export const apiClient = {
-  get: async (endpoint: string) => {
-    const response = await fetch(\`\${API_BASE_URL}\${endpoint}\`);
-    return response.json();
-  },
-  
-  post: async (endpoint: string, data: any) => {
-    const response = await fetch(\`\${API_BASE_URL}\${endpoint}\`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return response.json();
-  }
-};`,
-      },
-      {
-        id: 4,
-        name: "package.json",
-        size: "1.2 KB",
-        lastModified: "2024-08-30",
-        uploadedBy: "John Doe",
-        content: `{
-  "name": "react-dashboard-pro",
-  "version": "2.1.0",
-  "private": true,
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
-    "chart.js": "^4.2.1",
-    "react-chartjs-2": "^5.2.0"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  }
-}`,
-      },
-      {
-        id: 5,
-        name: "README.md",
-        size: "3.5 KB",
-        lastModified: "2024-08-28",
-        uploadedBy: "John Doe",
-        content: `# React Dashboard Pro
+  const handleCheckOut = async () => {
+    const data = await checkoutProject(projectId);
+    
+    if (data.ok) {
+      showToast.success("Project checked out successfully. You can now edit and upload files.");
+      fetchProject();
+    } else {
+      showToast.error(data.message || "Failed to check out project");
+    }
+  };
 
-A comprehensive admin dashboard built with React, TypeScript, and modern UI components.
-
-## Features
-
-- Real-time analytics and data visualization
-- User management system
-- Responsive design
-- Modern UI components
-- TypeScript support
-
-## Getting Started
-
-1. Clone the repository
-2. Install dependencies: \`npm install\`
-3. Start the development server: \`npm start\`
-4. Open http://localhost:3000 to view it in the browser
-
-## Project Structure
-
-- \`src/components/\` - Reusable React components
-- \`src/utils/\` - Utility functions and API clients
-- \`src/styles/\` - CSS and styling files
-
-## Contributing
-
-Please read our contributing guidelines before submitting pull requests.`,
-      },
-    ],
-    messages: [
-      {
-        id: 1,
-        user: "John Doe",
-        action: "check-in",
-        message: "Added new analytics dashboard with real-time charts",
-        version: "2.1.0",
-        timestamp: "2024-09-03T14:30:00Z",
-      },
-      {
-        id: 2,
-        user: "Jane Smith",
-        action: "check-in",
-        message: "Fixed responsive layout issues on mobile devices",
-        version: "2.0.5",
-        timestamp: "2024-09-01T11:15:00Z",
-      },
-      {
-        id: 3,
-        user: "Mike Johnson",
-        action: "check-in",
-        message: "Implemented user authentication and role-based access",
-        version: "2.0.0",
-        timestamp: "2024-08-28T16:45:00Z",
-      },
-    ],
-  }
-
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProject(dummyProject)
-      setNewVersion(dummyProject.version)
-    }, 500)
-  }, [projectId])
-
-  const handleCheckOut = () => {
-    setProject((prev) => ({
-      ...prev,
-      status: "checked-out",
-      checkedOutBy: currentUser?.name || "Current User",
-    }))
-  }
-
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
     if (!checkInMessage.trim()) {
-      alert("Please provide a check-in message")
-      return
+      showToast.error("Please provide a check-in message describing your changes");
+      return;
     }
 
-    const newMessage = {
-      id: project.messages.length + 1,
-      user: currentUser?.name || "Current User",
-      action: "check-in",
+    const data = await checkinProject(projectId, {
       message: checkInMessage,
-      version: newVersion,
-      timestamp: new Date().toISOString(),
-    }
+      version: newVersion
+    });
 
-    setProject((prev) => ({
-      ...prev,
-      status: "checked-in",
-      checkedOutBy: null,
-      version: newVersion,
-      lastUpdated: new Date().toISOString(),
-      messages: [newMessage, ...prev.messages],
-    }))
-
-    setCheckInMessage("")
-  }
-
-  const handleViewFile = (file) => {
-    setViewingFile(viewingFile?.id === file.id ? null : file)
-  }
-
-  const handleAddMember = () => {
-    if (!newMemberEmail.trim()) {
-      alert("Please enter a valid email address")
-      return
-    }
-
-    setProject((prev) => ({
-      ...prev,
-      members: [...prev.members, newMemberEmail],
-    }))
-
-    setNewMemberEmail("")
-    setShowAddMember(false)
-    alert(`Member ${newMemberEmail} added successfully!`)
-  }
-
-  const handleDeleteFile = (fileId) => {
-    if (isOwner || isAdmin || project.files.find((file) => file.id === fileId)?.uploadedBy === currentUser?.name) {
-      setProject((prev) => ({
-        ...prev,
-        files: prev.files.filter((file) => file.id !== fileId),
-      }))
-      alert("File deleted successfully!")
+    if (data.ok) {
+      showToast.success("Project checked in successfully. Changes are now available to all members.");
+      setCheckInMessage("");
+      fetchProject();
     } else {
-      alert("You don't have permission to delete this file.")
+      showToast.error(data.message || "Failed to check in project");
     }
-  }
+  };
 
-  const handleRemoveMember = (memberName) => {
-    if (isOwner || isAdmin) {
-      setProject((prev) => ({
-        ...prev,
-        members: prev.members.filter((member) => member !== memberName),
-      }))
-      alert(`Member ${memberName} removed successfully!`)
+  const handleFileChange = (e) => {
+    setFiles(Array.from(e.target.files));
+  };
+
+  const handleAddFiles = async () => {
+    if (files.length === 0) {
+      showToast.error("Please select files to upload");
+      return;
+    }
+
+    // Convert files to the format expected by backend
+    const filesInfo = files.map(file => ({
+      name: file.name,
+      size: `${(file.size / 1024).toFixed(2)} KB`
+    }));
+
+    const data = await addProjectFiles(projectId, filesInfo);
+
+    if (data.ok) {
+      showToast.success(`${files.length} file(s) added successfully`);
+      setFiles([]);
+      setShowAddFiles(false);
+      fetchProject();
     } else {
-      alert("You don't have permission to remove members.")
+      showToast.error(data.message || "Failed to add files");
     }
-  }
+  };
 
-  const handleDeleteProject = () => {
-    if (isOwner) {
-      alert("Project deleted successfully!")
+  const handleAddMember = async () => {
+    if (!selectedFriend) {
+      showToast.error("Please select a friend to add");
+      return;
+    }
+
+    const data = await addProjectMember(projectId, selectedFriend);
+
+    if (data.ok) {
+      const addedFriend = friends.find(f => f._id === selectedFriend);
+      showToast.success(`${addedFriend?.name} added as project member`);
+      setSelectedFriend("");
+      setShowAddMember(false);
+      fetchProject();
     } else {
-      alert("You don't have permission to delete this project.")
+      showToast.error(data.message || "Failed to add member");
     }
-  }
+  };
 
-  const canCheckOut = project?.status === "checked-in"
+  const handleRemoveMember = async (memberId, memberName) => {
+    const confirmed = window.confirm(`Are you sure you want to remove ${memberName} from this project?`);
+    if (!confirmed) return;
+
+    const data = await removeProjectMember(projectId, memberId);
+
+    if (data.ok) {
+      showToast.success(`${memberName} removed from project`);
+      fetchProject();
+    } else {
+      showToast.error(data.message || "Failed to remove member");
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    const confirmed = window.confirm(
+      `⚠️ DELETE PROJECT: "${project.name}"\n\nThis will permanently delete:\n- All project files\n- All check-in history\n- All related activities\n\nThis action CANNOT be undone.\n\nType the project name to confirm deletion.`
+    );
+
+    if (!confirmed) return;
+
+    const userConfirmation = prompt(`Type "${project.name}" to confirm deletion:`);
+    
+    if (userConfirmation !== project.name) {
+      showToast.error("Project name didn't match. Deletion cancelled.");
+      return;
+    }
+
+    const data = await deleteProject(projectId);
+
+    if (data.ok) {
+      showToast.success("Project deleted successfully");
+      navigate("/home");
+    } else {
+      showToast.error(data.message || "Failed to delete project");
+    }
+  };
+
+  const canCheckOut = project?.status === "checked-in" && isMember;
   const canCheckIn =
-    project?.status === "checked-out" && project?.checkedOutBy === (currentUser?.name || "Current User")
+    project?.status === "checked-out" &&
+    (project?.checkedOutBy?._id === currentUser?.id || project?.checkedOutBy?.id === currentUser?.id);
+  const canAddFiles = isMember;
+  const canAddMembers = isMember; // Both owner and members can add friends
+
+  if (isLoading) {
+    return (
+      <main style={{ textAlign: "center", padding: "3rem" }}>
+        <p style={{ color: "var(--lz-text-muted)" }}>Loading project...</p>
+      </main>
+    );
+  }
 
   if (!project) {
     return (
-      <main>
-        <div style={{ textAlign: "center", padding: "2rem", color: "var(--lz-muted)" }}>Loading project...</div>
+      <main style={{ textAlign: "center", padding: "3rem" }}>
+        <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>❌</div>
+        <p style={{ color: "var(--lz-text-muted)" }}>Project not found</p>
       </main>
-    )
+    );
   }
 
   return (
     <main>
-      <div
-        className="card"
-        style={{
-          marginBottom: "2rem",
-          padding: "1.5rem",
-          background: "var(--lz-surface)",
-          border: "2px solid var(--lz-purple)",
-          borderRadius: "8px",
-          boxShadow: "0 2px 8px rgba(139, 92, 246, 0.1)",
-        }}
-      >
-        <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              cursor: "pointer",
-              padding: "0.5rem 1rem",
-              background: isOwner ? "rgba(139, 92, 246, 0.1)" : "transparent",
-              borderRadius: "6px",
-              border: isOwner ? "1px solid var(--lz-purple)" : "1px solid transparent",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={isOwner}
-              onChange={(e) => setIsOwner(e.target.checked)}
-              style={{
-                cursor: "pointer",
-                width: "18px",
-                height: "18px",
-                accentColor: "var(--lz-purple)",
-              }}
-            />
-            <span
-              style={{
-                color: "var(--lz-text)",
-                fontWeight: isOwner ? "600" : "400",
-                fontSize: "1rem",
-              }}
-            >
-            Owner
+      {/* Role Indicator */}
+      <div className="card" style={{ marginBottom: "2rem", padding: "1rem", background: "var(--lz-surface-elevated)", border: "1px solid var(--lz-border)" }}>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center", fontSize: "0.9rem", flexWrap: "wrap" }}>
+          <span style={{ color: "var(--lz-text-muted)" }}>Your Role:</span>
+          {isOwner && (
+            <span style={{ padding: "0.25rem 0.75rem", background: "var(--lz-purple)", color: "white", borderRadius: "4px", fontWeight: "600" }}>
+              👑 Owner (Full Control)
             </span>
-          </label>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              cursor: "pointer",
-              padding: "0.5rem 1rem",
-              background: isAdmin ? "rgba(139, 92, 246, 0.1)" : "transparent",
-              borderRadius: "6px",
-              border: isAdmin ? "1px solid var(--lz-purple)" : "1px solid transparent",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={isAdmin}
-              onChange={(e) => setIsAdmin(e.target.checked)}
-              style={{
-                cursor: "pointer",
-                width: "18px",
-                height: "18px",
-                accentColor: "var(--lz-purple)",
-              }}
-            />
-            <span
-              style={{
-                color: "var(--lz-text)",
-                fontWeight: isAdmin ? "600" : "400",
-                fontSize: "1rem",
-              }}
-            >
-              Admin
+          )}
+          {!isOwner && isMember && (
+            <span style={{ padding: "0.25rem 0.75rem", background: "var(--lz-primary)", color: "white", borderRadius: "4px", fontWeight: "600" }}>
+              👤 Member (Can Edit & Collaborate)
             </span>
-          </label>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              cursor: "pointer",
-              padding: "0.5rem 1rem",
-              background: isMember ? "rgba(139, 92, 246, 0.1)" : "transparent",
-              borderRadius: "6px",
-              border: isMember ? "1px solid var(--lz-purple)" : "1px solid transparent",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={isMember}
-              onChange={(e) => setIsMember(e.target.checked)}
-              style={{
-                cursor: "pointer",
-                width: "18px",
-                height: "18px",
-                accentColor: "var(--lz-purple)",
-              }}
-            />
-            <span
-              style={{
-                color: "var(--lz-text)",
-                fontWeight: isMember ? "600" : "400",
-                fontSize: "1rem",
-              }}
-            >
-              Member
+          )}
+          {!isOwner && !isMember && (
+            <span style={{ padding: "0.25rem 0.75rem", background: "var(--lz-surface)", color: "var(--lz-text-muted)", borderRadius: "4px", border: "1px solid var(--lz-border)" }}>
+              👁️ Public Viewer (View & Download Only)
             </span>
-          </label>
+          )}
         </div>
+        {!isOwner && !isMember && (
+          <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+            This is a public project. You can view details and download files, but cannot make changes.
+          </p>
+        )}
       </div>
 
       {/* Project Header */}
       <div className="card" style={{ marginBottom: "2rem" }}>
-        <div style={{ display: "flex", gap: "2rem" }}>
+        <div style={{ display: "flex", gap: "2rem", alignItems: "start" }}>
           <img
             src={project.image || "/placeholder.svg"}
             alt={project.name}
-            style={{
-              width: "200px",
-              height: "150px",
-              borderRadius: "8px",
-              objectFit: "cover",
-            }}
+            style={{ width: "200px", height: "150px", borderRadius: "8px", objectFit: "cover", background: "var(--lz-surface)" }}
+            onError={(e) => { e.target.src = "/placeholder.svg"; }}
           />
 
           <div style={{ flex: 1 }}>
-            <div
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "1rem" }}
-            >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "1rem" }}>
               <div>
-                <h1 style={{ margin: "0 0 0.5rem 0" }}>{project.name}</h1>
-                <p style={{ color: "var(--lz-muted)", margin: "0 0 1rem 0" }}>
-                  by {project.owner} • v{project.version}
+                <h1 style={{ margin: "0 0 0.5rem 0", color: "var(--lz-text-primary)" }}>
+                  {project.name}
+                </h1>
+                <p style={{ color: "var(--lz-text-muted)", margin: "0 0 1rem 0" }}>
+                  by {project.owner?.name || project.owner?.username || "Unknown"} • v{project.version}
                 </p>
               </div>
 
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                <span className={project.status === "checked-out" ? "status-out" : "status-in"}>
+                <span style={{
+                  padding: "0.5rem 1rem",
+                  background: project.status === "checked-out" ? "var(--lz-orange)" : "var(--lz-green)",
+                  color: "white",
+                  borderRadius: "6px",
+                  fontSize: "0.875rem",
+                  fontWeight: "600"
+                }}>
                   {project.status === "checked-out" ? "🔒 Checked Out" : "✅ Available"}
                 </span>
-                {project.status === "checked-out" && (
-                  <span style={{ fontSize: "0.875rem", color: "var(--lz-muted)" }}>by {project.checkedOutBy}</span>
+                {project.status === "checked-out" && project.checkedOutBy && (
+                  <span style={{ fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+                    by {project.checkedOutBy.name || project.checkedOutBy.username}
+                  </span>
                 )}
               </div>
             </div>
 
-            <p style={{ marginBottom: "1rem" }}>{project.description}</p>
+            <p style={{ marginBottom: "1rem", color: "var(--lz-text-secondary)" }}>
+              {project.description}
+            </p>
 
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-              {project.languages.map((lang, index) => (
-                <span
-                  key={index}
-                  style={{
-                    background: "var(--lz-purple)",
-                    color: "var(--lz-white)",
-                    padding: "0.25rem 0.5rem",
-                    borderRadius: "4px",
-                    fontSize: "0.75rem",
-                  }}
-                >
+              {project.languages?.map((lang, index) => (
+                <span key={index} style={{
+                  background: "var(--lz-primary)",
+                  color: "white",
+                  padding: "0.25rem 0.5rem",
+                  borderRadius: "4px",
+                  fontSize: "0.75rem",
+                  fontWeight: "600"
+                }}>
                   #{lang}
                 </span>
               ))}
             </div>
 
-            <div style={{ fontSize: "0.875rem", color: "var(--lz-muted)" }}>
-              <div>Type: {project.type}</div>
-              <div>Members: {project.members.join(", ")}</div>
-              <div>Created: {new Date(project.createdAt).toLocaleDateString()}</div>
-              <div>Last Updated: {new Date(project.lastUpdated).toLocaleDateString()}</div>
+            <div style={{ fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+              <div>📁 Type: {project.type}</div>
+              <div>👥 Members: {project.members?.map((m) => m.name || m.username).join(", ") || "None"}</div>
+              <div>📅 Created: {new Date(project.createdAt).toLocaleDateString()}</div>
+              <div>🔄 Last Updated: {new Date(project.lastUpdated).toLocaleDateString()}</div>
             </div>
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-          {/* Check-out/Check-in buttons for members */}
-          {isMember && canCheckOut && (
-            <button
-              onClick={handleCheckOut}
-              className="btn-primary"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.75rem 1.5rem",
-                background: "var(--lz-blue)",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                fontSize: "0.9rem",
-                fontWeight: "500",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-            >
+          {/* Check-out button */}
+          {canCheckOut && (
+            <button onClick={handleCheckOut} style={{
+              display: "flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.75rem 1.5rem", background: "var(--lz-primary)",
+              color: "white", border: "none", borderRadius: "6px",
+              fontSize: "0.9rem", fontWeight: "600", cursor: "pointer"
+            }}>
               📤 Check Out Project
             </button>
           )}
 
-          {isMember && canCheckIn && (
-            <div style={{ display: "flex", gap: "1rem", alignItems: "end", flex: 1 }}>
-              <div style={{ flex: 1 }}>
-                <label htmlFor="checkin-message">Check-in Message</label>
+          {/* Check-in controls */}
+          {canCheckIn && (
+            <div style={{ display: "flex", gap: "1rem", alignItems: "end", flex: 1, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "200px" }}>
                 <input
                   type="text"
-                  id="checkin-message"
                   value={checkInMessage}
                   onChange={(e) => setCheckInMessage(e.target.value)}
                   placeholder="Describe your changes..."
+                  style={{
+                    width: "100%", padding: "0.75rem",
+                    background: "var(--lz-surface)",
+                    border: "1px solid var(--lz-border)",
+                    borderRadius: "6px",
+                    color: "var(--lz-text-primary)"
+                  }}
                 />
               </div>
-              <div>
-                <label htmlFor="new-version">Version</label>
+              <div style={{ width: "120px" }}>
                 <input
                   type="text"
-                  id="new-version"
                   value={newVersion}
                   onChange={(e) => setNewVersion(e.target.value)}
-                  style={{ width: "100px" }}
+                  placeholder="Version"
+                  style={{
+                    width: "100%", padding: "0.75rem",
+                    background: "var(--lz-surface)",
+                    border: "1px solid var(--lz-border)",
+                    borderRadius: "6px",
+                    color: "var(--lz-text-primary)"
+                  }}
                 />
               </div>
-              <button
-                onClick={handleCheckIn}
-                className="btn-success"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.75rem 1.5rem",
-                  background: "var(--lz-green)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "0.9rem",
-                  fontWeight: "500",
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={handleCheckIn} style={{
+                display: "flex", alignItems: "center", gap: "0.5rem",
+                padding: "0.75rem 1.5rem", background: "var(--lz-green)",
+                color: "white", border: "none", borderRadius: "6px",
+                fontSize: "0.9rem", fontWeight: "600", cursor: "pointer",
+                whiteSpace: "nowrap"
+              }}>
                 📥 Check In
               </button>
             </div>
           )}
 
-          {/* Add Files button - available to everyone as requested */}
-          <button
-            className="btn-secondary"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.75rem 1.5rem",
-              background: "var(--lz-purple)",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              fontSize: "0.9rem",
-              fontWeight: "500",
-              cursor: "pointer",
-            }}
-          >
-            📁 Add Files
-          </button>
+          {/* Member actions */}
+          {canAddMembers && (
+            <button onClick={() => setShowAddMember(!showAddMember)} style={{
+              display: "flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.75rem 1.5rem", background: "transparent",
+              color: "var(--lz-primary)", border: "2px solid var(--lz-primary)",
+              borderRadius: "6px", fontSize: "0.9rem", fontWeight: "600",
+              cursor: "pointer"
+            }}>
+              👥 Add Member
+            </button>
+          )}
 
-          {/* Owner-only buttons */}
+          {canAddFiles && (
+            <button onClick={() => setShowAddFiles(!showAddFiles)} style={{
+              display: "flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.75rem 1.5rem", background: "transparent",
+              color: "var(--lz-primary)", border: "2px solid var(--lz-primary)",
+              borderRadius: "6px", fontSize: "0.9rem", fontWeight: "600",
+              cursor: "pointer"
+            }}>
+              📁 Add Files
+            </button>
+          )}
+
+          {/* Owner only actions */}
           {isOwner && (
-            <>
-              <button
-                onClick={() => setShowAddMember(!showAddMember)}
-                className="btn-outline"
+            <button onClick={handleDeleteProject} style={{
+              display: "flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.75rem 1.5rem", background: "var(--lz-red)",
+              color: "white", border: "none", borderRadius: "6px",
+              fontSize: "0.9rem", fontWeight: "600", cursor: "pointer"
+            }}>
+              🗑️ Delete Project
+            </button>
+          )}
+        </div>
+
+        {/* Add Member Form */}
+        {showAddMember && canAddMembers && (
+          <div style={{
+            marginTop: "1rem", padding: "1rem",
+            background: "var(--lz-surface)", borderRadius: "6px",
+            border: "1px solid var(--lz-border)"
+          }}>
+            <h4 style={{ margin: "0 0 0.5rem 0", color: "var(--lz-text-primary)" }}>Add Member (Friends Only)</h4>
+            <p style={{ margin: "0 0 1rem 0", fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+              Members can edit the project, check-in/out, add files, and invite other friends.
+            </p>
+            <div style={{ display: "flex", gap: "1rem", alignItems: "end", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "250px" }}>
+                <select
+                  value={selectedFriend}
+                  onChange={(e) => setSelectedFriend(e.target.value)}
+                  style={{
+                    width: "100%", padding: "0.75rem",
+                    background: "var(--lz-surface-elevated)",
+                    border: "1px solid var(--lz-border)",
+                    borderRadius: "6px",
+                    color: "var(--lz-text-primary)",
+                    cursor: "pointer"
+                  }}
+                >
+                  <option value="">Select a friend...</option>
+                  {friends.length === 0 ? (
+                    <option disabled>No friends available to add</option>
+                  ) : (
+                    friends.map(friend => (
+                      <option key={friend._id} value={friend._id}>
+                        {friend.name} (@{friend.username})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <button 
+                onClick={handleAddMember}
+                disabled={!selectedFriend}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.75rem 1.5rem",
-                  background: "transparent",
-                  color: "var(--lz-blue)",
-                  border: "2px solid var(--lz-blue)",
-                  borderRadius: "6px",
-                  fontSize: "0.9rem",
-                  fontWeight: "500",
-                  cursor: "pointer",
+                  padding: "0.75rem 1.5rem", 
+                  background: selectedFriend ? "var(--lz-green)" : "var(--lz-surface)",
+                  color: selectedFriend ? "white" : "var(--lz-text-muted)", 
+                  border: selectedFriend ? "none" : "1px solid var(--lz-border)", 
+                  borderRadius: "6px", 
+                  cursor: selectedFriend ? "pointer" : "not-allowed",
+                  fontWeight: "600",
+                  opacity: selectedFriend ? 1 : 0.6
                 }}
               >
                 Add Member
               </button>
-
-              <button
-                onClick={handleDeleteProject}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.75rem 1.5rem",
-                  background: "var(--lz-red)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "0.9rem",
-                  fontWeight: "500",
-                  cursor: "pointer",
-                }}
-              >
-                🗑️ Delete Project
-              </button>
-            </>
-          )}
-
-          {/* Admin and Owner can remove members */}
-          {(isOwner || isAdmin) && (
-            <button
-              onClick={() => handleRemoveMember("Jane Smith")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.75rem 1.5rem",
-                background: "var(--lz-orange)",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                fontSize: "0.9rem",
-                fontWeight: "500",
+              <button onClick={() => { setShowAddMember(false); setSelectedFriend(""); }} style={{
+                padding: "0.75rem 1rem", 
+                background: "var(--lz-surface-elevated)",
+                color: "var(--lz-text-primary)", 
+                border: "1px solid var(--lz-border)",
+                borderRadius: "6px", 
                 cursor: "pointer",
-              }}
-            >
-              👤➖ Remove Member
-            </button>
-          )}
-
-          <button
-            className="btn-outline"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.75rem 1.5rem",
-              background: "transparent",
-              color: "var(--lz-muted)",
-              border: "2px solid var(--lz-muted)",
-              borderRadius: "6px",
-              fontSize: "0.9rem",
-              fontWeight: "500",
-              cursor: "pointer",
-            }}
-          >
-            💾 Download Files
-          </button>
-        </div>
-
-        {showAddMember && (
-          <div
-            style={{
-              marginTop: "1rem",
-              padding: "1rem",
-              background: "var(--lz-card-bg)",
-              borderRadius: "6px",
-              border: "1px solid var(--lz-border)",
-            }}
-          >
-            <h4 style={{ margin: "0 0 1rem 0" }}>Add New Member</h4>
-            <div style={{ display: "flex", gap: "1rem", alignItems: "end" }}>
-              <div style={{ flex: 1 }}>
-                <label htmlFor="member-email">Member Email</label>
-                <input
-                  type="email"
-                  id="member-email"
-                  value={newMemberEmail}
-                  onChange={(e) => setNewMemberEmail(e.target.value)}
-                  placeholder="Enter member's email address..."
-                />
-              </div>
-              <button
-                onClick={handleAddMember}
-                style={{
-                  padding: "0.75rem 1.5rem",
-                  background: "var(--lz-green)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
-                Add
+                fontWeight: "500"
+              }}>
+                Cancel
               </button>
-              <button
-                onClick={() => setShowAddMember(false)}
+            </div>
+          </div>
+        )}
+
+        {/* Add Files Form */}
+        {showAddFiles && canAddFiles && (
+          <div style={{
+            marginTop: "1rem", padding: "1rem",
+            background: "var(--lz-surface)", borderRadius: "6px",
+            border: "1px solid var(--lz-border)"
+          }}>
+            <h4 style={{ margin: "0 0 0.5rem 0", color: "var(--lz-text-primary)" }}>Upload Project Files</h4>
+            <p style={{ margin: "0 0 1rem 0", fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+              Upload files for this project. All members will have access to download these files.
+            </p>
+            <div style={{ display: "flex", gap: "1rem", alignItems: "end", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "250px" }}>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileChange}
+                  style={{
+                    width: "100%", padding: "0.75rem",
+                    background: "var(--lz-surface-elevated)",
+                    border: "1px solid var(--lz-border)",
+                    borderRadius: "6px",
+                    color: "var(--lz-text-primary)",
+                    cursor: "pointer"
+                  }}
+                />
+                {files.length > 0 && (
+                  <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+                    ✓ {files.length} file(s) selected ({files.map(f => f.name).join(", ")})
+                  </p>
+                )}
+              </div>
+              <button 
+                onClick={handleAddFiles}
+                disabled={files.length === 0}
                 style={{
-                  padding: "0.75rem 1rem",
-                  background: "transparent",
-                  color: "var(--lz-muted)",
-                  border: "1px solid var(--lz-muted)",
-                  borderRadius: "6px",
-                  cursor: "pointer",
+                  padding: "0.75rem 1.5rem", 
+                  background: files.length > 0 ? "var(--lz-green)" : "var(--lz-surface)",
+                  color: files.length > 0 ? "white" : "var(--lz-text-muted)", 
+                  border: files.length > 0 ? "none" : "1px solid var(--lz-border)", 
+                  borderRadius: "6px", 
+                  cursor: files.length > 0 ? "pointer" : "not-allowed",
+                  fontWeight: "600",
+                  opacity: files.length > 0 ? 1 : 0.6
                 }}
               >
+                Upload Files
+              </button>
+              <button onClick={() => { setShowAddFiles(false); setFiles([]); }} style={{
+                padding: "0.75rem 1rem", 
+                background: "var(--lz-surface-elevated)",
+                color: "var(--lz-text-primary)", 
+                border: "1px solid var(--lz-border)",
+                borderRadius: "6px", 
+                cursor: "pointer",
+                fontWeight: "500"
+              }}>
                 Cancel
               </button>
             </div>
@@ -727,20 +536,16 @@ Please read our contributing guidelines before submitting pull requests.`,
 
       {/* Tabs */}
       <div style={{ marginBottom: "2rem" }}>
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", borderBottom: "1px solid #1d1d27" }}>
-          {["overview", "files", "messages"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                background: "transparent",
-                border: "none",
-                borderBottom: activeTab === tab ? "2px solid var(--lz-purple)" : "2px solid transparent",
-                padding: "0.75rem 0",
-                color: activeTab === tab ? "var(--lz-white)" : "var(--lz-muted)",
-                textTransform: "capitalize",
-              }}
-            >
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", borderBottom: "2px solid var(--lz-border)" }}>
+          {["overview", "files", "members", "history"].map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              background: "transparent", border: "none",
+              borderBottom: activeTab === tab ? "3px solid var(--lz-primary)" : "3px solid transparent",
+              padding: "0.75rem 0", marginBottom: "-2px",
+              color: activeTab === tab ? "var(--lz-primary)" : "var(--lz-text-secondary)",
+              fontSize: "1rem", fontWeight: "600", cursor: "pointer",
+              textTransform: "capitalize"
+            }}>
               {tab}
             </button>
           ))}
@@ -748,41 +553,32 @@ Please read our contributing guidelines before submitting pull requests.`,
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
-          <div className="grid" style={{ gridTemplateColumns: "2fr 1fr", gap: "2rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "2rem" }}>
             <div className="card">
               <h3 style={{ marginBottom: "1rem" }}>Project Details</h3>
-              <div style={{ display: "grid", gap: "0.5rem", fontSize: "0.9rem" }}>
-                <div>
-                  <strong>Name:</strong> {project.name}
-                </div>
-                <div>
-                  <strong>Description:</strong> {project.description}
-                </div>
-                <div>
-                  <strong>Type:</strong> {project.type}
-                </div>
-                <div>
-                  <strong>Version:</strong> {project.version}
-                </div>
-                <div>
-                  <strong>Status:</strong> {project.status}
-                </div>
-                <div>
-                  <strong>Owner:</strong> {project.owner}
-                </div>
-                <div>
-                  <strong>Members:</strong> {project.members.join(", ")}
-                </div>
+              <div style={{ display: "grid", gap: "0.75rem", fontSize: "0.9rem" }}>
+                <div><strong>Name:</strong> {project.name}</div>
+                <div><strong>Description:</strong> {project.description}</div>
+                <div><strong>Type:</strong> {project.type}</div>
+                <div><strong>Version:</strong> {project.version}</div>
+                <div><strong>Status:</strong> <span style={{
+                  color: project.status === "checked-out" ? "var(--lz-orange)" : "var(--lz-green)",
+                  fontWeight: "600"
+                }}>
+                  {project.status === "checked-out" ? "Checked Out" : "Available"}
+                </span></div>
+                <div><strong>Owner:</strong> {project.owner?.name || project.owner?.username}</div>
+                <div><strong>Members:</strong> {project.members?.map((m) => m.name || m.username).join(", ") || "None"}</div>
               </div>
             </div>
 
             <div className="card">
               <h3 style={{ marginBottom: "1rem" }}>Quick Stats</h3>
-              <div style={{ display: "grid", gap: "0.5rem", fontSize: "0.9rem" }}>
-                <div>📁 {project.files.length} files</div>
-                <div>💬 {project.messages.length} check-ins</div>
-                <div>👥 {project.members.length} members</div>
-                <div>🏷️ {project.languages.length} languages</div>
+              <div style={{ display: "grid", gap: "0.75rem", fontSize: "0.9rem" }}>
+                <div>📁 {project.files?.length || 0} files</div>
+                <div>💬 {project.checkIns?.length || 0} check-ins</div>
+                <div>👥 {project.members?.length || 0} members</div>
+                <div>🏷️ {project.languages?.length || 0} languages</div>
               </div>
             </div>
           </div>
@@ -791,118 +587,211 @@ Please read our contributing guidelines before submitting pull requests.`,
         {/* Files Tab */}
         {activeTab === "files" && (
           <div className="card">
-            <h3 style={{ marginBottom: "1rem" }}>Project Files</h3>
-            <div style={{ display: "grid", gap: "0.5rem" }}>
-              {project.files.map((file) => (
-                <div key={file.id}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h3 style={{ margin: 0 }}>Project Files ({project.files?.length || 0})</h3>
+              {canAddFiles && (
+                <button onClick={() => setShowAddFiles(true)} style={{
+                  padding: "0.5rem 1rem",
+                  background: "var(--lz-primary)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "0.875rem",
+                  cursor: "pointer"
+                }}>
+                  + Add Files
+                </button>
+              )}
+            </div>
+
+            {(!project.files || project.files.length === 0) ? (
+              <div style={{ textAlign: "center", padding: "2rem", color: "var(--lz-text-muted)" }}>
+                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📁</div>
+                <p>No files uploaded yet</p>
+                {canAddFiles && (
+                  <button onClick={() => setShowAddFiles(true)} style={{
+                    marginTop: "1rem",
+                    padding: "0.5rem 1rem",
+                    background: "var(--lz-primary)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}>
+                    Upload First File
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: "0.5rem" }}>
+                {project.files.map((file) => (
                   <div
+                    key={file._id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
                       padding: "0.75rem",
-                      background: "var(--lz-card-bg)",
+                      background: "var(--lz-surface-elevated)",
                       borderRadius: "6px",
                       border: "1px solid var(--lz-border)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
                     }}
                   >
                     <div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem" }}>📄 {file.name}</div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--lz-muted)" }}>
-                        {file.size} • Modified {file.lastModified} • Uploaded by {file.uploadedBy}
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", marginBottom: "0.25rem" }}>
+                        📄 {file.name}
+                      </div>
+                      <div style={{ fontSize: "0.8rem", color: "var(--lz-text-muted)" }}>
+                        {file.size} • Uploaded by {file.uploadedBy?.name || file.uploadedBy?.username || "Unknown"}
+                        {file.uploadedAt && ` • ${new Date(file.uploadedAt).toLocaleDateString()}`}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <button
-                        onClick={() => handleViewFile(file)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          padding: "0.5rem 1rem",
-                          fontSize: "0.8rem",
-                          background: viewingFile?.id === file.id ? "var(--lz-purple)" : "transparent",
-                          color: viewingFile?.id === file.id ? "white" : "var(--lz-blue)",
-                          border: `1px solid ${viewingFile?.id === file.id ? "var(--lz-purple)" : "var(--lz-blue)"}`,
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        👁️ {viewingFile?.id === file.id ? "Hide" : "View"}
-                      </button>
+                    <button style={{
+                      padding: "0.5rem 1rem",
+                      background: "var(--lz-primary)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      cursor: "pointer"
+                    }}>
+                      Download
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-                      {(isOwner || isAdmin || file.uploadedBy === currentUser?.name) && (
-                        <button
-                          onClick={() => handleDeleteFile(file.id)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            padding: "0.5rem 1rem",
-                            fontSize: "0.8rem",
-                            background: "var(--lz-red)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          🗑️ Delete
-                        </button>
-                      )}
+        {/* Members Tab */}
+        {activeTab === "members" && (
+          <div className="card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h3 style={{ margin: 0 }}>Project Members ({project.members?.length || 0})</h3>
+              {canAddMembers && (
+                <button onClick={() => setShowAddMember(true)} style={{
+                  padding: "0.5rem 1rem",
+                  background: "var(--lz-primary)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "0.875rem",
+                  cursor: "pointer"
+                }}>
+                  + Add Member
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gap: "1rem" }}>
+              {/* Owner */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                  padding: "1rem",
+                  background: "var(--lz-surface-elevated)",
+                  borderRadius: "8px",
+                }}
+              >
+                <img
+                  src={project.owner?.profileImage || "/placeholder.svg"}
+                  alt={project.owner?.name}
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                  }}
+                  onError={(e) => {
+                    e.target.src = "/placeholder.svg";
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: "600" }}>
+                    {project.owner?.name || project.owner?.username}
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+                    @{project.owner?.username}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: "0.25rem 0.75rem",
+                    background: "var(--lz-purple)",
+                    color: "white",
+                    borderRadius: "4px",
+                    fontSize: "0.75rem",
+                    fontWeight: "600",
+                  }}
+                >
+                  👑 Owner
+                </span>
+              </div>
+
+              {/* Other Members */}
+              {project.members?.filter(m => 
+                (m._id || m.id) !== (project.owner?._id || project.owner?.id)
+              ).map((member) => (
+                <div
+                  key={member._id || member.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    padding: "1rem",
+                    background: "var(--lz-surface-elevated)",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <img
+                    src={member.profileImage || "/placeholder.svg"}
+                    alt={member.name}
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.target.src = "/placeholder.svg";
+                    }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: "600" }}>{member.name || member.username}</div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+                      @{member.username}
                     </div>
                   </div>
-
-                  {viewingFile?.id === file.id && (
-                    <div
+                  <span
+                    style={{
+                      padding: "0.25rem 0.75rem",
+                      background: "var(--lz-primary)",
+                      color: "white",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Member
+                  </span>
+                  {isOwner && (
+                    <button
+                      onClick={() => handleRemoveMember(member._id || member.id, member.name || member.username)}
                       style={{
-                        marginTop: "0.5rem",
-                        padding: "1rem",
-                        background: "var(--lz-surface)",
-                        borderRadius: "6px",
-                        border: "1px solid var(--lz-border)",
+                        padding: "0.5rem 1rem",
+                        background: "transparent",
+                        color: "var(--lz-red)",
+                        border: "1px solid var(--lz-red)",
+                        borderRadius: "4px",
+                        fontSize: "0.75rem",
+                        cursor: "pointer"
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <h4 style={{ margin: 0, fontSize: "0.9rem" }}>📄 {file.name}</h4>
-                        <button
-                          onClick={() => setViewingFile(null)}
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: "var(--lz-muted)",
-                            cursor: "pointer",
-                            fontSize: "1.2rem",
-                          }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <textarea
-                        readOnly
-                        value={file.content}
-                        style={{
-                          width: "100%",
-                          height: "300px",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.8rem",
-                          background: "var(--lz-bg)",
-                          color: "var(--lz-text)",
-                          border: "1px solid var(--lz-border)",
-                          borderRadius: "4px",
-                          padding: "0.75rem",
-                          resize: "vertical",
-                        }}
-                      />
-                    </div>
+                      Remove
+                    </button>
                   )}
                 </div>
               ))}
@@ -910,56 +799,67 @@ Please read our contributing guidelines before submitting pull requests.`,
           </div>
         )}
 
-        {/* Messages Tab */}
-        {activeTab === "messages" && (
+        {/* History Tab */}
+        {activeTab === "history" && (
           <div className="card">
-            <h3 style={{ marginBottom: "1rem" }}>Check-in Messages</h3>
-            <div style={{ display: "grid", gap: "1rem" }}>
-              {project.messages.map((message) => (
-                <div
-                  key={message.id}
-                  style={{
-                    padding: "1rem",
-                    background: "#161622",
-                    borderRadius: "8px",
-                    borderLeft: "4px solid var(--lz-purple)",
-                  }}
-                >
+            <h3 style={{ marginBottom: "1rem" }}>Check-in History ({project.checkIns?.length || 0})</h3>
+
+            {(!project.checkIns || project.checkIns.length === 0) ? (
+              <div style={{ textAlign: "center", padding: "2rem", color: "var(--lz-text-muted)" }}>
+                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📝</div>
+                <p>No check-in history yet</p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: "1rem" }}>
+                {project.checkIns.map((checkIn) => (
                   <div
+                    key={checkIn._id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "start",
-                      marginBottom: "0.5rem",
+                      padding: "1rem",
+                      background: "var(--lz-surface-elevated)",
+                      borderRadius: "8px",
+                      borderLeft: "4px solid var(--lz-primary)",
                     }}
                   >
-                    <div>
-                      <strong>{message.user}</strong> {message.action === "check-in" ? "checked in" : "checked out"}
-                      <span
-                        style={{
-                          marginLeft: "0.5rem",
-                          padding: "0.125rem 0.375rem",
-                          background: "var(--lz-purple)",
-                          borderRadius: "4px",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        v{message.version}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "start",
+                        marginBottom: "0.5rem",
+                      }}
+                    >
+                      <div>
+                        <strong>{checkIn.user?.name || checkIn.user?.username}</strong> checked in
+                        <span
+                          style={{
+                            marginLeft: "0.5rem",
+                            padding: "0.125rem 0.375rem",
+                            background: "var(--lz-primary)",
+                            color: "white",
+                            borderRadius: "4px",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          v{checkIn.version}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: "0.8rem", color: "var(--lz-text-muted)" }}>
+                        {new Date(checkIn.timestamp).toLocaleString()}
                       </span>
                     </div>
-                    <span style={{ fontSize: "0.8rem", color: "var(--lz-muted)" }}>
-                      {new Date(message.timestamp).toLocaleString()}
-                    </span>
+                    <p style={{ margin: 0, fontStyle: "italic", color: "var(--lz-text-secondary)" }}>
+                      "{checkIn.message}"
+                    </p>
                   </div>
-                  <p style={{ margin: 0, fontStyle: "italic" }}>"{message.message}"</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
     </main>
-  )
-}
+  );
+};
 
-export default ProjectPage
+export default ProjectPage;

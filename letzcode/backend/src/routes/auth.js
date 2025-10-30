@@ -119,13 +119,14 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// ... rest of the signin and /me routes remain the same
 // @route   POST /api/auth/signin
 // @desc    Login user
 // @access  Public
 router.post('/signin', async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    console.log('Signin attempt for email:', email);
 
     // Validation
     if (!email || !password) {
@@ -137,24 +138,34 @@ router.post('/signin', async (req, res) => {
 
     // Find user
     const user = await User.findOne({ email: email.toLowerCase() });
+    
     if (!user) {
+      console.log('User not found:', email);
       return res.status(401).json({
         ok: false,
         message: 'No account found with this email. Please sign up first.'
       });
     }
 
+    console.log('User found, checking password...');
+
     // Check password
     const isPasswordValid = await user.comparePassword(password);
+    
     if (!isPasswordValid) {
+      console.log('Invalid password for user:', email);
       return res.status(401).json({
         ok: false,
         message: 'Incorrect password. Please try again.'
       });
     }
 
+    console.log('Password valid, generating token...');
+
     // Generate token
     const token = generateToken(user._id);
+
+    console.log('Signin successful for:', email);
 
     res.json({
       ok: true,

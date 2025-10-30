@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import { getCurrentUser } from "./api";
 import { showToast } from "./utils/toast";
 import { Toaster } from "react-hot-toast";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Pages
 import SplashPage from "./pages/SplashPage";
@@ -20,38 +21,66 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [theme, setTheme] = useState("light"); // Changed default to light
+  const [theme, setTheme] = useState("light");
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAuth();
-    
-    // Default to light mode if no preference is saved
+    // Set theme first
     const savedTheme = localStorage.getItem("theme") || "light";
     setTheme(savedTheme);
     document.documentElement.setAttribute("data-theme", savedTheme);
+    
+    // Then check auth
+    checkAuth();
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const user = await getCurrentUser();
-      if (user) {
-        setIsAuthenticated(true);
-        setCurrentUser(user);
-      } else {
-        localStorage.clear();
+    try {
+      const token = localStorage.getItem("token");
+      console.log('Checking auth, token exists:', !!token);
+      
+      if (token) {
+        const user = await getCurrentUser();
+        console.log('Got user:', user);
+        
+        if (user) {
+          setIsAuthenticated(true);
+          setCurrentUser(user);
+        } else {
+          // Token is invalid
+          localStorage.removeItem("token");
+          localStorage.removeItem("userId");
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+        }
       }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleLogin = (userData) => {
-    setIsAuthenticated(true);
-    setCurrentUser(userData.user);
+    console.log('handleLogin called with:', userData);
+    
+    if (!userData || !userData.token || !userData.user) {
+      console.error('Invalid login data:', userData);
+      showToast.error('Login failed - invalid response');
+      return;
+    }
+    
+    // Store token and user ID
     localStorage.setItem("token", userData.token);
     localStorage.setItem("userId", userData.user.id);
     
+    // Update state
+    setIsAuthenticated(true);
+    setCurrentUser(userData.user);
+    
+    // Navigate
     if (!userData.user.profileCompleted) {
       navigate(`/profile/${userData.user.id}`);
     } else {
@@ -64,6 +93,7 @@ function App() {
     setCurrentUser(null);
     localStorage.clear();
     navigate("/");
+    showToast.success("Logged out successfully");
   };
 
   const handleThemeToggle = () => {
@@ -88,7 +118,6 @@ function App() {
         background: "var(--lz-background)"
       }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⏳</div>
           <div style={{ color: "var(--lz-text-primary)" }}>Loading LetzCode...</div>
         </div>
       </div>
@@ -97,9 +126,9 @@ function App() {
 
   return (
     <div className="lz-body">
-      <Toaster />
+      <Toaster position="top-right" />
       
-      {isAuthenticated && (
+      {isAuthenticated ? (
         <>
           <Header 
             currentUser={currentUser} 
@@ -112,20 +141,20 @@ function App() {
               onThemeToggle={handleThemeToggle}
             />
             <div style={{ flex: 1, minHeight: "calc(100vh - 64px)", padding: "2rem" }}>
-              <Routes>
-                <Route path="/home" element={<HomePage currentUser={currentUser} />} />
-                <Route path="/profile/:userId" element={<ProfilePage currentUser={currentUser} />} />
-                <Route path="/friends" element={<FriendsPage currentUser={currentUser} />} />
-                <Route path="/history" element={<HistoryPage currentUser={currentUser} />} />
-                <Route path="/project/:projectId" element={<ProjectPage currentUser={currentUser} />} />
-                <Route path="*" element={<HomePage currentUser={currentUser} />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/home" element={<HomePage currentUser={currentUser} />} />
+                  <Route path="/profile/:userId" element={<ProfilePage currentUser={currentUser} />} />
+                  <Route path="/friends" element={<FriendsPage currentUser={currentUser} />} />
+                  <Route path="/history" element={<HistoryPage currentUser={currentUser} />} />
+                  <Route path="/project/:projectId" element={<ProjectPage currentUser={currentUser} />} />
+                  <Route path="*" element={<HomePage currentUser={currentUser} />} />
+                </Routes>
+              </ErrorBoundary>
             </div>
           </div>
         </>
-      )}
-      
-      {!isAuthenticated && (
+      ) : (
         <Routes>
           <Route path="*" element={<SplashPage onLogin={handleLogin} />} />
         </Routes>
