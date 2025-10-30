@@ -8,7 +8,9 @@ import {
   addProjectFiles,
   addProjectMember,
   removeProjectMember,
-  getFriends
+  getFriends,
+  downloadProjectFile,
+  previewProjectFile
 } from "../api";
 import { showToast } from "../utils/toast";
 
@@ -25,6 +27,8 @@ const ProjectPage = ({ currentUser }) => {
   const [friends, setFriends] = useState([]);
   const [selectedFriend, setSelectedFriend] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Calculate user's role
   const isOwner = project?.owner?._id === currentUser?.id || project?.owner?.id === currentUser?.id;
@@ -160,6 +164,30 @@ const ProjectPage = ({ currentUser }) => {
     }
   };
 
+  const handleDownloadFile = async (fileId, fileName) => {
+    const data = await downloadProjectFile(projectId, fileId);
+    
+    if (data.ok) {
+      showToast.success(`Downloading ${fileName}...`);
+      // In a real app, this would trigger actual file download
+      // For demo, we'll show the download info
+      console.log("Download file:", data.file);
+    } else {
+      showToast.error(data.message || "Failed to download file");
+    }
+  };
+
+  const handlePreviewFile = async (fileId) => {
+    const data = await previewProjectFile(projectId, fileId);
+    
+    if (data.ok) {
+      setPreviewFile(data.file);
+      setShowPreview(true);
+    } else {
+      showToast.error(data.message || "Failed to preview file");
+    }
+  };
+
   const handleDeleteProject = async () => {
     const confirmed = window.confirm(
       `⚠️ DELETE PROJECT: "${project.name}"\n\nThis will permanently delete:\n- All project files\n- All check-in history\n- All related activities\n\nThis action CANNOT be undone.\n\nType the project name to confirm deletion.`
@@ -216,17 +244,17 @@ const ProjectPage = ({ currentUser }) => {
           <span style={{ color: "var(--lz-text-muted)" }}>Your Role:</span>
           {isOwner && (
             <span style={{ padding: "0.25rem 0.75rem", background: "var(--lz-purple)", color: "white", borderRadius: "4px", fontWeight: "600" }}>
-              👑 Owner (Full Control)
+               Owner 
             </span>
           )}
           {!isOwner && isMember && (
             <span style={{ padding: "0.25rem 0.75rem", background: "var(--lz-primary)", color: "white", borderRadius: "4px", fontWeight: "600" }}>
-              👤 Member (Can Edit & Collaborate)
+              Member 
             </span>
           )}
           {!isOwner && !isMember && (
             <span style={{ padding: "0.25rem 0.75rem", background: "var(--lz-surface)", color: "var(--lz-text-muted)", borderRadius: "4px", border: "1px solid var(--lz-border)" }}>
-              👁️ Public Viewer (View & Download Only)
+              Viewer
             </span>
           )}
         </div>
@@ -267,7 +295,7 @@ const ProjectPage = ({ currentUser }) => {
                   fontSize: "0.875rem",
                   fontWeight: "600"
                 }}>
-                  {project.status === "checked-out" ? "🔒 Checked Out" : "✅ Available"}
+                  {project.status === "checked-out" ? " Checked Out" : " Available"}
                 </span>
                 {project.status === "checked-out" && project.checkedOutBy && (
                   <span style={{ fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
@@ -297,10 +325,10 @@ const ProjectPage = ({ currentUser }) => {
             </div>
 
             <div style={{ fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
-              <div>📁 Type: {project.type}</div>
-              <div>👥 Members: {project.members?.map((m) => m.name || m.username).join(", ") || "None"}</div>
-              <div>📅 Created: {new Date(project.createdAt).toLocaleDateString()}</div>
-              <div>🔄 Last Updated: {new Date(project.lastUpdated).toLocaleDateString()}</div>
+              <div> Type: {project.type}</div>
+              <div> Members: {project.members?.map((m) => m.name || m.username).join(", ") || "None"}</div>
+              <div> Created: {new Date(project.createdAt).toLocaleDateString()}</div>
+              <div> Last Updated: {new Date(project.lastUpdated).toLocaleDateString()}</div>
             </div>
           </div>
         </div>
@@ -373,7 +401,7 @@ const ProjectPage = ({ currentUser }) => {
               borderRadius: "6px", fontSize: "0.9rem", fontWeight: "600",
               cursor: "pointer"
             }}>
-              👥 Add Member
+               Add Member
             </button>
           )}
 
@@ -385,20 +413,20 @@ const ProjectPage = ({ currentUser }) => {
               borderRadius: "6px", fontSize: "0.9rem", fontWeight: "600",
               cursor: "pointer"
             }}>
-              📁 Add Files
+               Add Files
             </button>
           )}
 
           {/* Owner only actions */}
           {isOwner && (
-            <button onClick={handleDeleteProject} style={{
-              display: "flex", alignItems: "center", gap: "0.5rem",
-              padding: "0.75rem 1.5rem", background: "var(--lz-red)",
-              color: "white", border: "none", borderRadius: "6px",
-              fontSize: "0.9rem", fontWeight: "600", cursor: "pointer"
-            }}>
-              🗑️ Delete Project
-            </button>
+          <button onClick={handleDeleteProject} style={{
+            display: "flex", alignItems: "center", gap: "0.5rem",
+            padding: "0.75rem 1.5rem", background: "var(--lz-red)",
+            color: "white", border: "none", borderRadius: "6px",
+            fontSize: "0.9rem", fontWeight: "600", cursor: "pointer"
+          }}>
+             Delete Project
+          </button>
           )}
         </div>
 
@@ -584,7 +612,7 @@ const ProjectPage = ({ currentUser }) => {
           </div>
         )}
 
-        {/* Files Tab */}
+        {/* Files Tab - UPDATED */}
         {activeTab === "files" && (
           <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -637,7 +665,7 @@ const ProjectPage = ({ currentUser }) => {
                       alignItems: "center"
                     }}
                   >
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", marginBottom: "0.25rem" }}>
                         📄 {file.name}
                       </div>
@@ -646,17 +674,36 @@ const ProjectPage = ({ currentUser }) => {
                         {file.uploadedAt && ` • ${new Date(file.uploadedAt).toLocaleDateString()}`}
                       </div>
                     </div>
-                    <button style={{
-                      padding: "0.5rem 1rem",
-                      background: "var(--lz-primary)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      fontSize: "0.75rem",
-                      cursor: "pointer"
-                    }}>
-                      Download
-                    </button>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button 
+                        onClick={() => handlePreviewFile(file._id)}
+                        style={{
+                          padding: "0.5rem 1rem",
+                          background: "transparent",
+                          color: "var(--lz-primary)",
+                          border: "1px solid var(--lz-primary)",
+                          borderRadius: "4px",
+                          fontSize: "0.75rem",
+                          cursor: "pointer"
+                        }}
+                      >
+                        👁️ Preview
+                      </button>
+                      <button 
+                        onClick={() => handleDownloadFile(file._id, file.name)}
+                        style={{
+                          padding: "0.5rem 1rem",
+                          background: "var(--lz-primary)",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          fontSize: "0.75rem",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ⬇️ Download
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -727,7 +774,7 @@ const ProjectPage = ({ currentUser }) => {
                     fontWeight: "600",
                   }}
                 >
-                  👑 Owner
+                   Owner
                 </span>
               </div>
 
@@ -858,6 +905,117 @@ const ProjectPage = ({ currentUser }) => {
           </div>
         )}
       </div>
+
+      {/* File Preview Modal */}
+      {showPreview && previewFile && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "2rem"
+          }}
+          onClick={() => setShowPreview(false)}
+        >
+          <div
+            style={{
+              background: "var(--lz-surface-elevated)",
+              borderRadius: "8px",
+              maxWidth: "900px",
+              width: "100%",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Preview Header */}
+            <div style={{
+              padding: "1rem",
+              borderBottom: "1px solid var(--lz-border)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <div>
+                <h3 style={{ margin: 0, color: "var(--lz-text-primary)" }}>
+                  📄 {previewFile.name}
+                </h3>
+                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.875rem", color: "var(--lz-text-muted)" }}>
+                  {previewFile.size} • {previewFile.type}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background: "transparent",
+                  color: "var(--lz-text-muted)",
+                  border: "1px solid var(--lz-border)",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "1rem"
+                }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Preview Content */}
+            <div style={{
+              flex: 1,
+              overflow: "auto",
+              padding: "1rem"
+            }}>
+              <pre style={{
+                background: "var(--lz-surface)",
+                padding: "1rem",
+                borderRadius: "4px",
+                overflow: "auto",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.875rem",
+                lineHeight: "1.5",
+                color: "var(--lz-text-primary)",
+                margin: 0
+              }}>
+                <code>{previewFile.content}</code>
+              </pre>
+            </div>
+
+            {/* Preview Footer */}
+            <div style={{
+              padding: "1rem",
+              borderTop: "1px solid var(--lz-border)",
+              display: "flex",
+              gap: "1rem",
+              justifyContent: "flex-end"
+            }}>
+              <button
+                onClick={() => handleDownloadFile(previewFile._id || previewFile.id, previewFile.name)}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  background: "var(--lz-primary)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "600"
+                }}
+              >
+                ⬇️ Download File
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

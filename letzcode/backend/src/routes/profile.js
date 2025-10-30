@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
+const upload = require('../middleware/upload');
 const router = express.Router();
 
 // Middleware to verify JWT token
@@ -128,5 +128,42 @@ router.delete('/', authenticate, async (req, res) => {
     });
   }
 });
+
+
+// @route   POST /api/profile/upload-image
+// @desc    Upload profile image
+// @access  Private
+router.post('/upload-image', authenticate, upload.single('profileImage'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        ok: false,
+        message: 'No image file provided'
+      });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    
+    // Update user's profile image
+    const user = req.user;
+    user.profileImage = imageUrl;
+    await user.save();
+
+    res.json({
+      ok: true,
+      message: 'Profile image uploaded successfully',
+      imageUrl,
+      user: user.toPublicJSON()
+    });
+
+  } catch (error) {
+    console.error('Upload profile image error:', error);
+    res.status(500).json({
+      ok: false,
+      message: error.message || 'Error uploading image'
+    });
+  }
+});
+
 
 module.exports = router;

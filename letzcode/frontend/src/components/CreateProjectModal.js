@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { createProject } from "../api";
+import { createProject, uploadProjectImage } from "../api";
 import { showToast } from "../utils/toast";
 
 const CreateProjectModal = ({ onClose, onSuccess }) => {
@@ -11,6 +11,8 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
     version: "1.0.0",
   });
   const [files, setFiles] = useState([]);
+  const [projectImage, setProjectImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("/placeholder.svg");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const projectTypes = [
@@ -36,9 +38,32 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
     setFiles(Array.from(e.target.files));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast.error("Image must be less than 5MB");
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      showToast.error("Please select an image file");
+      return;
+    }
+
+    setProjectImage(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.description) {
       showToast.error("Please fill in all required fields");
       return;
@@ -54,8 +79,6 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
         .filter((lang) => lang),
     };
 
-    // Note: In a real app, you'd upload files here
-    // For now, we're just tracking file metadata
     if (files.length > 0) {
       projectData.filesInfo = files.map(f => ({
         name: f.name,
@@ -63,17 +86,26 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
       }));
     }
 
+    // Create project first
     const data = await createProject(projectData);
 
-    setIsSubmitting(false);
-
     if (data.ok) {
+      // If project image is provided, upload it
+      if (projectImage) {
+        const imageData = await uploadProjectImage(data.project.id || data.project._id, projectImage);
+        if (imageData.ok) {
+          data.project.image = imageData.imageUrl;
+        }
+      }
+
       showToast.success("Project created successfully");
       onSuccess(data.project);
       onClose();
     } else {
       showToast.error(data.message || "Failed to create project");
     }
+
+    setIsSubmitting(false);
   };
 
   return (
@@ -94,26 +126,28 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
       onClick={onClose}
     >
       <div
-        className="card"
         style={{
+          background: "var(--lz-surface-elevated)",
+          borderRadius: "8px",
           maxWidth: "600px",
           width: "100%",
           maxHeight: "90vh",
-          overflowY: "auto",
+          overflow: "auto",
+          padding: "2rem",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-          <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--lz-text-primary)" }}>Create New Project</h2>
+          <h2 style={{ margin: 0, color: "var(--lz-text-primary)" }}>Create New Project</h2>
           <button
             onClick={onClose}
             style={{
               background: "transparent",
               border: "none",
               fontSize: "1.5rem",
-              color: "var(--lz-text-muted)",
               cursor: "pointer",
-              padding: "0.5rem",
+              color: "var(--lz-text-muted)",
+              padding: "0.25rem 0.5rem",
             }}
           >
             ×
@@ -121,7 +155,55 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "1rem" }}>
+          {/* Project Image Upload */}
+          <div style={{ marginBottom: "1.5rem", textAlign: "center" }}>
+            <div style={{ marginBottom: "1rem" }}>
+              <img
+                src={imagePreview}
+                alt="Project preview"
+                style={{
+                  width: "200px",
+                  height: "150px",
+                  objectFit: "cover",
+                  borderRadius: "8px",
+                  border: "2px solid var(--lz-border)"
+                }}
+                onError={(e) => {
+                  e.target.src = "/placeholder.svg";
+                }}
+              />
+            </div>
+            <label
+              htmlFor="project-image-upload"
+              style={{
+                padding: "0.5rem 1rem",
+                background: "var(--lz-primary)",
+                color: "white",
+                borderRadius: "6px",
+                cursor: "pointer",
+                display: "inline-block",
+                fontSize: "0.875rem"
+              }}
+            >
+              🖼️ Choose Project Image
+            </label>
+            <input
+              id="project-image-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              style={{ display: "none" }}
+            />
+            <p style={{ 
+              marginTop: "0.5rem", 
+              fontSize: "0.75rem", 
+              color: "var(--lz-text-muted)" 
+            }}>
+              Max 5MB • JPG, PNG, GIF, WebP
+            </p>
+          </div>
+
+          <div style={{ marginBottom: "1.5rem" }}>
             <label htmlFor="name" style={{ display: "block", marginBottom: "0.5rem", color: "var(--lz-text-primary)", fontWeight: "500" }}>
               Project Name *
             </label>
@@ -145,7 +227,7 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
             />
           </div>
 
-          <div style={{ marginBottom: "1rem" }}>
+          <div style={{ marginBottom: "1.5rem" }}>
             <label htmlFor="description" style={{ display: "block", marginBottom: "0.5rem", color: "var(--lz-text-primary)", fontWeight: "500" }}>
               Description *
             </label>
@@ -154,8 +236,8 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              rows="3"
               required
+              rows="3"
               placeholder="Describe what your project does..."
               style={{
                 width: "100%",
@@ -170,17 +252,16 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
             <div>
               <label htmlFor="type" style={{ display: "block", marginBottom: "0.5rem", color: "var(--lz-text-primary)", fontWeight: "500" }}>
-                Project Type *
+                Project Type
               </label>
               <select
                 id="type"
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
-                required
                 style={{
                   width: "100%",
                   padding: "0.75rem",
@@ -224,9 +305,9 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
             </div>
           </div>
 
-          <div style={{ marginBottom: "1rem" }}>
+          <div style={{ marginBottom: "1.5rem" }}>
             <label htmlFor="languages" style={{ display: "block", marginBottom: "0.5rem", color: "var(--lz-text-primary)", fontWeight: "500" }}>
-              Programming Languages (comma-separated)
+              Programming Languages
             </label>
             <input
               type="text"
@@ -296,16 +377,16 @@ const CreateProjectModal = ({ onClose, onSuccess }) => {
             <button
               type="button"
               onClick={onClose}
-              disabled={isSubmitting}
               style={{
+                flex: 1,
                 padding: "0.75rem 1.5rem",
                 background: "transparent",
-                color: "var(--lz-text-secondary)",
+                color: "var(--lz-text-primary)",
                 border: "1px solid var(--lz-border)",
                 borderRadius: "6px",
                 fontSize: "1rem",
                 fontWeight: "600",
-                cursor: isSubmitting ? "not-allowed" : "pointer",
+                cursor: "pointer",
               }}
             >
               Cancel

@@ -26,3 +26,6 @@ build/
 
 # Ignore Webpack cache (if applicable)
 webpack-cache/
+
+frontend/public/uploads/*
+!frontend/public/uploads/.gitkeep

@@ -868,3 +868,173 @@ export async function removeProjectMember(projectId, memberId) {
         };
     }
 }
+
+export async function downloadProjectFile(projectId, fileId) {
+    try {
+        const res = await fetch(`/api/projects/${projectId}/files/${fileId}/download`);
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to download file"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Download file error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function previewProjectFile(projectId, fileId) {
+    try {
+        const res = await fetch(`/api/projects/${projectId}/files/${fileId}/preview`);
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to preview file"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Preview file error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function uploadProfileImage(imageFile) {
+    try {
+        const token = localStorage.getItem("token");
+        const formData = new FormData();
+        formData.append('profileImage', imageFile);
+
+        const res = await fetch('/api/profile/upload-image', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || 'Failed to upload image'
+            };
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Upload profile image error:', error);
+        return {
+            ok: false,
+            message: 'Network error'
+        };
+    }
+}
+
+export async function uploadProjectImage(projectId, imageFile) {
+    try {
+        const token = localStorage.getItem("token");
+        const formData = new FormData();
+        formData.append('projectImage', imageFile);
+
+        const res = await fetch(`/api/projects/${projectId}/upload-image`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || 'Failed to upload image'
+            };
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Upload project image error:', error);
+        return {
+            ok: false,
+            message: 'Network error'
+        };
+    }
+}
+
+export async function searchProjects(query, filters = {}) {
+    try {
+        const token = localStorage.getItem("token");
+        const params = new URLSearchParams();
+        
+        if (query) params.append('query', query);
+        if (filters.type) params.append('type', filters.type);
+        if (filters.language) params.append('language', filters.language);
+        
+        const res = await fetch(`/api/projects/search?${params.toString()}`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to search projects"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Search projects error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function globalSearch(query) {
+    try {
+        const token = localStorage.getItem("token");
+        
+        // Search both users and projects
+        const [usersData, projectsData] = await Promise.all([
+            searchUsers(query),
+            searchProjects(query)
+        ]);
+        
+        return {
+            ok: true,
+            users: usersData.ok ? usersData.users : [],
+            projects: projectsData.ok ? projectsData.projects : []
+        };
+    } catch (error) {
+        console.error("Global search error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}

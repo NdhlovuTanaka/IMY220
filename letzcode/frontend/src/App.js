@@ -12,6 +12,7 @@ import ProfilePage from "./pages/ProfilePage";
 import FriendsPage from "./pages/FriendsPage";
 import HistoryPage from "./pages/HistoryPage";
 import ProjectPage from "./pages/ProjectPage";
+import SearchPage from "./pages/SearchPage";
 
 // Components
 import Header from "./components/Header";
@@ -149,6 +150,7 @@ function App() {
                   <Route path="/history" element={<HistoryPage currentUser={currentUser} />} />
                   <Route path="/project/:projectId" element={<ProjectPage currentUser={currentUser} />} />
                   <Route path="*" element={<HomePage currentUser={currentUser} />} />
+                  <Route path="/search" element={<SearchPage currentUser={currentUser} />} />
                 </Routes>
               </ErrorBoundary>
             </div>

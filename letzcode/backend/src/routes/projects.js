@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const Project = require('../models/Project');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
+const upload = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -150,6 +151,60 @@ router.get('/', authenticate, async (req, res) => {
     res.status(500).json({
       ok: false,
       message: 'Error fetching projects'
+    });
+  }
+});
+
+// @route   GET /api/projects/search
+// @desc    Search projects by name, description, or language
+// @access  Public
+router.get('/search', authenticate, async (req, res) => {
+  try {
+    const { query, type, language } = req.query;
+
+    if (!query && !language) {
+      return res.json({
+        ok: true,
+        projects: []
+      });
+    }
+
+    let searchQuery = {};
+
+    // Text search
+    if (query && query.trim().length >= 2) {
+      searchQuery.$or = [
+        { name: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } }
+      ];
+    }
+
+    // Filter by type
+    if (type && type !== 'all') {
+      searchQuery.type = type;
+    }
+
+    // Filter by language
+    if (language) {
+      searchQuery.languages = { $in: [new RegExp(language, 'i')] };
+    }
+
+    const projects = await Project.find(searchQuery)
+      .populate('owner', 'name username profileImage')
+      .populate('members', 'name username profileImage')
+      .sort({ lastUpdated: -1 })
+      .limit(50);
+
+    res.json({
+      ok: true,
+      projects: projects.map(p => p.toPublicJSON())
+    });
+
+  } catch (error) {
+    console.error('Search projects error:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Error searching projects'
     });
   }
 });
@@ -632,6 +687,150 @@ router.delete('/:projectId/members/:memberId', authenticate, async (req, res) =>
     res.status(500).json({
       ok: false,
       message: 'Error removing member'
+    });
+  }
+});
+
+// @route   GET /api/projects/:projectId/files/:fileId/download
+// @desc    Download a project file
+// @access  Public (anyone can download files per spec)
+router.get('/:projectId/files/:fileId/download', async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.projectId);
+
+    if (!project) {
+      return res.status(404).json({
+        ok: false,
+        message: 'Project not found'
+      });
+    }
+
+    const file = project.files.id(req.params.fileId);
+
+    if (!file) {
+      return res.status(404).json({
+        ok: false,
+        message: 'File not found'
+      });
+    }
+
+    // In a real app, you'd retrieve the actual file from storage
+    // For now, we'll return file metadata as JSON
+    res.json({
+      ok: true,
+      file: {
+        name: file.name,
+        size: file.size,
+        path: file.path,
+        uploadedBy: file.uploadedBy,
+        uploadedAt: file.uploadedAt,
+        // In production, this would be a download URL or file buffer
+        downloadUrl: `/files/${project._id}/${file.name}`
+      }
+    });
+
+  } catch (error) {
+    console.error('Download file error:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Error downloading file'
+    });
+  }
+});
+
+// @route   GET /api/projects/:projectId/files/:fileId/preview
+// @desc    Preview a project file
+// @access  Public
+router.get('/:projectId/files/:fileId/preview', async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.projectId);
+
+    if (!project) {
+      return res.status(404).json({
+        ok: false,
+        message: 'Project not found'
+      });
+    }
+
+    const file = project.files.id(req.params.fileId);
+
+    if (!file) {
+      return res.status(404).json({
+        ok: false,
+        message: 'File not found'
+      });
+    }
+
+    res.json({
+      ok: true,
+      file: {
+        name: file.name,
+        size: file.size,
+        content: `// Sample content for ${file.name}\n// In production, this would load actual file content\n\nconsole.log("Hello from ${file.name}");`,
+        type: file.name.endsWith('.js') ? 'javascript' : 
+              file.name.endsWith('.py') ? 'python' : 
+              file.name.endsWith('.html') ? 'html' : 
+              file.name.endsWith('.css') ? 'css' : 'text'
+      }
+    });
+
+  } catch (error) {
+    console.error('Preview file error:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Error previewing file'
+    });
+  }
+});
+
+// @route   POST /api/projects/:projectId/upload-image
+// @desc    Upload project image
+// @access  Private (Owner only)
+router.post('/:projectId/upload-image', authenticate, upload.single('projectImage'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        ok: false,
+        message: 'No image file provided'
+      });
+    }
+
+    const project = await Project.findById(req.params.projectId);
+
+    if (!project) {
+      return res.status(404).json({
+        ok: false,
+        message: 'Project not found'
+      });
+    }
+
+    // Check if user is owner
+    if (project.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Only the project owner can update the project image'
+      });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    project.image = imageUrl;
+    await project.save();
+
+    await project.populate('owner', 'name username email profileImage');
+    await project.populate('members', 'name username email profileImage');
+
+    res.json({
+      ok: true,
+      message: 'Project image uploaded successfully',
+      imageUrl,
+      project
+    });
+
+  } catch (error) {
+    console.error('Upload project image error:', error);
+    res.status(500).json({
+      ok: false,
+      message: error.message || 'Error uploading image'
     });
   }
 });

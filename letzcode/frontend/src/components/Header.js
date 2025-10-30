@@ -31,7 +31,7 @@ const Header = ({ currentUser, onLogout, onSearch }) => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      onSearch(searchTerm.trim());
+      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
       setSearchTerm("");
     }
   };
@@ -81,14 +81,46 @@ const Header = ({ currentUser, onLogout, onSearch }) => {
         zIndex: 100,
       }}
     >
-      <Link to="/home" className="lz-logo">
-        <img
-          src="/assets/images/logo.png"
-          alt="LetzCode Logo"
-          style={{ height: "40px", cursor: "pointer" }}
-        />
+      {/* Logo */}
+      <Link 
+        to="/home" 
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          textDecoration: "none",
+          color: "var(--lz-text-primary)"
+        }}
+      >
+        <div
+          style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "8px",
+            background: "linear-gradient(135deg, var(--lz-primary), var(--lz-purple))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "800",
+            fontSize: "1.5rem",
+            color: "white"
+          }}
+        >
+          L
+        </div>
+        <span style={{ 
+          fontSize: "1.5rem", 
+          fontWeight: "800",
+          background: "linear-gradient(135deg, var(--lz-primary), var(--lz-purple))",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text"
+        }}>
+          LetzCode
+        </span>
       </Link>
 
+      {/* Search Bar */}
       <form
         onSubmit={handleSearch}
         style={{
@@ -266,6 +298,9 @@ const Header = ({ currentUser, onLogout, onSearch }) => {
                           borderRadius: "50%",
                           objectFit: "cover",
                         }}
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg";
+                        }}
                       />
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: "0 0 0.25rem 0", color: "var(--lz-text-primary)", fontSize: "0.875rem" }}>
@@ -316,6 +351,9 @@ const Header = ({ currentUser, onLogout, onSearch }) => {
                 height: "32px",
                 borderRadius: "50%",
                 objectFit: "cover",
+              }}
+              onError={(e) => {
+                e.target.src = "/placeholder.svg";
               }}
             />
           </Link>
