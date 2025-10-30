@@ -8,28 +8,25 @@ const profileRoutes = require('./routes/profile');
 const projectRoutes = require('./routes/projects');
 const activityRoutes = require('./routes/activity');
 const friendRoutes = require('./routes/friends');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 
-// Connect to MongoDB
 connectDB();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/friends', friendRoutes);
+app.use('/api/notifications', notificationRoutes);
 
-// Serve static frontend files
 const publicDir = path.join(__dirname, "..", "..", "frontend", "public");
 app.use(express.static(publicDir));
 
-// Fallback for client-side routing
 app.get("*", (req, res) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ message: 'API endpoint not found' });

@@ -2,6 +2,8 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
+const Notification = require('../models/Notification');
+
 
 const router = express.Router();
 
@@ -51,7 +53,6 @@ router.post('/request', authenticate, async (req, res) => {
       });
     }
 
-    // Can't send request to yourself
     if (userId === req.user._id.toString()) {
       return res.status(400).json({
         ok: false,
@@ -67,7 +68,6 @@ router.post('/request', authenticate, async (req, res) => {
       });
     }
 
-    // Check if already friends
     if (req.user.friends.includes(userId)) {
       return res.status(400).json({
         ok: false,
@@ -75,7 +75,6 @@ router.post('/request', authenticate, async (req, res) => {
       });
     }
 
-    // Check if request already sent
     if (targetUser.friendRequests.includes(req.user._id)) {
       return res.status(400).json({
         ok: false,
@@ -83,7 +82,6 @@ router.post('/request', authenticate, async (req, res) => {
       });
     }
 
-    // Check if target user already sent you a request
     if (req.user.friendRequests.includes(userId)) {
       return res.status(400).json({
         ok: false,
@@ -91,9 +89,17 @@ router.post('/request', authenticate, async (req, res) => {
       });
     }
 
-    // Add friend request
     targetUser.friendRequests.push(req.user._id);
     await targetUser.save();
+
+    // Create notification
+    await Notification.create({
+      recipient: targetUser._id,
+      sender: req.user._id,
+      type: 'friend-request',
+      message: `${req.user.name} sent you a friend request`,
+      link: `/profile/${req.user._id}`
+    });
 
     res.json({
       ok: true,
@@ -123,7 +129,6 @@ router.post('/accept', authenticate, async (req, res) => {
       });
     }
 
-    // Check if friend request exists
     if (!req.user.friendRequests.includes(userId)) {
       return res.status(400).json({
         ok: false,
@@ -139,7 +144,6 @@ router.post('/accept', authenticate, async (req, res) => {
       });
     }
 
-    // Add each other as friends
     req.user.friends.push(userId);
     req.user.friendRequests = req.user.friendRequests.filter(
       id => id.toString() !== userId
@@ -149,6 +153,15 @@ router.post('/accept', authenticate, async (req, res) => {
 
     await req.user.save();
     await otherUser.save();
+
+    // Create notification for the user who sent the request
+    await Notification.create({
+      recipient: otherUser._id,
+      sender: req.user._id,
+      type: 'friend-accept',
+      message: `${req.user.name} accepted your friend request`,
+      link: `/profile/${req.user._id}`
+    });
 
     res.json({
       ok: true,
@@ -263,10 +276,16 @@ router.get('/', authenticate, async (req, res) => {
       .populate('friends', 'name username email profileImage work location')
       .populate('friendRequests', 'name username email profileImage');
 
+    // Find users who have pending requests from current user
+    const sentRequests = await User.find({
+      friendRequests: req.user._id
+    }).select('name username email profileImage work location');
+
     res.json({
       ok: true,
       friends: user.friends,
-      friendRequests: user.friendRequests
+      friendRequests: user.friendRequests,
+      sentRequests: sentRequests
     });
 
   } catch (error) {
@@ -404,6 +423,49 @@ router.get('/:friendId/mutual', authenticate, async (req, res) => {
     res.status(500).json({
       ok: false,
       message: 'Error fetching mutual data'
+    });
+  }
+});
+
+// @route   POST /api/friends/cancel
+// @desc    Cancel sent friend request
+// @access  Private
+router.post('/cancel', authenticate, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        ok: false,
+        message: 'User ID is required'
+      });
+    }
+
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({
+        ok: false,
+        message: 'User not found'
+      });
+    }
+
+    // Remove friend request from target user
+    targetUser.friendRequests = targetUser.friendRequests.filter(
+      id => id.toString() !== req.user._id.toString()
+    );
+    
+    await targetUser.save();
+
+    res.json({
+      ok: true,
+      message: 'Friend request cancelled'
+    });
+
+  } catch (error) {
+    console.error('Cancel friend request error:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Error cancelling friend request'
     });
   }
 });

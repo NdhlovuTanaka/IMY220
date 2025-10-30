@@ -531,6 +531,37 @@ export async function removeFriend(friendId) {
     }
 }
 
+export async function cancelFriendRequest(userId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/friends/cancel", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to cancel friend request"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Cancel friend request error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
 export async function getFriends() {
     try {
         const token = localStorage.getItem("token");
@@ -608,6 +639,122 @@ export async function getMutualData(friendId) {
         return data;
     } catch (error) {
         console.error("Get mutual data error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+// Notification APIs
+export async function getNotifications() {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/notifications", {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to fetch notifications"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Get notifications error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function markNotificationRead(notificationId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/notifications/${notificationId}/read`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to mark notification as read"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Mark notification read error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function markAllNotificationsRead() {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/notifications/read-all", {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to mark all notifications as read"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Mark all notifications read error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function deleteNotification(notificationId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/notifications/${notificationId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to delete notification"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Delete notification error:", error);
         return {
             ok: false,
             message: "Network error"

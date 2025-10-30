@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getFriends, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, searchUsers, getProjects } from "../api";
+import { getFriends, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, searchUsers, getProjects, cancelFriendRequest } from "../api";
 import { showToast } from "../utils/toast";
 
 const FriendsPage = ({ currentUser }) => {
   const [activeTab, setActiveTab] = useState("friends");
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -35,8 +36,8 @@ const FriendsPage = ({ currentUser }) => {
     if (data.ok) {
       setFriends(data.friends);
       setFriendRequests(data.friendRequests);
+      setSentRequests(data.sentRequests || []);
       
-      // Fetch projects to calculate mutual projects
       const projectsData = await getProjects("my");
       if (projectsData.ok) {
         calculateMutualProjects(data.friends, projectsData.projects);
@@ -54,10 +55,10 @@ const FriendsPage = ({ currentUser }) => {
     friendsList.forEach(friend => {
       const sharedProjects = projects.filter(project => 
         project.members && project.members.some(member => 
-          member.id === friend.id || member._id === friend.id
+          member.id === friend._id || member._id === friend._id
         )
       );
-      mutual[friend.id] = sharedProjects.length;
+      mutual[friend._id] = sharedProjects.length;
     });
     
     setMutualProjects(mutual);
@@ -83,7 +84,7 @@ const FriendsPage = ({ currentUser }) => {
     
     if (data.ok) {
       showToast.success("Friend request sent");
-      // Update search results to reflect new status
+      fetchFriendsData(); // Refresh to update sent requests
       setSearchResults(results =>
         results.map(user =>
           user.id === userId ? { ...user, friendStatus: 'outgoing' } : user
@@ -99,7 +100,7 @@ const FriendsPage = ({ currentUser }) => {
     
     if (data.ok) {
       showToast.success("Friend request accepted");
-      fetchFriendsData(); // Refresh data
+      fetchFriendsData();
     } else {
       showToast.error(data.message || "Failed to accept friend request");
     }
@@ -110,9 +111,26 @@ const FriendsPage = ({ currentUser }) => {
     
     if (data.ok) {
       showToast.success("Friend request rejected");
-      setFriendRequests(requests => requests.filter(req => req.id !== userId));
+      setFriendRequests(requests => requests.filter(req => req._id !== userId));
     } else {
       showToast.error(data.message || "Failed to reject friend request");
+    }
+  };
+
+  const handleCancelRequest = async (userId) => {
+    const data = await cancelFriendRequest(userId);
+    
+    if (data.ok) {
+      showToast.success("Friend request cancelled");
+      setSentRequests(requests => requests.filter(req => req._id !== userId));
+      // Update search results if user is in search
+      setSearchResults(results =>
+        results.map(user =>
+          user.id === userId ? { ...user, friendStatus: 'none' } : user
+        )
+      );
+    } else {
+      showToast.error(data.message || "Failed to cancel friend request");
     }
   };
 
@@ -125,7 +143,7 @@ const FriendsPage = ({ currentUser }) => {
     
     if (data.ok) {
       showToast.success("Friend removed");
-      setFriends(friends => friends.filter(friend => friend.id !== friendId));
+      setFriends(friends => friends.filter(friend => friend._id !== friendId));
     } else {
       showToast.error(data.message || "Failed to remove friend");
     }
@@ -171,18 +189,18 @@ const FriendsPage = ({ currentUser }) => {
       case 'outgoing':
         return (
           <button
-            disabled
+            onClick={() => handleCancelRequest(user.id)}
             style={{
               padding: "0.5rem 1rem",
-              background: "var(--lz-surface)",
+              background: "transparent",
               color: "var(--lz-text-muted)",
               border: "1px solid var(--lz-border)",
               borderRadius: "6px",
               fontSize: "0.875rem",
-              cursor: "not-allowed"
+              cursor: "pointer"
             }}
           >
-            Request Sent
+            Cancel Request
           </button>
         );
       default:
@@ -333,6 +351,23 @@ const FriendsPage = ({ currentUser }) => {
           >
             Requests ({friendRequests.length})
           </button>
+          <button
+            onClick={() => setActiveTab("sent")}
+            style={{
+              padding: "0.75rem 1.5rem",
+              background: "transparent",
+              border: "none",
+              borderBottom: activeTab === "sent" ? "3px solid var(--lz-primary)" : "3px solid transparent",
+              color: activeTab === "sent" ? "var(--lz-primary)" : "var(--lz-text-secondary)",
+              fontSize: "1rem",
+              fontWeight: "600",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              marginBottom: "-2px"
+            }}
+          >
+            Sent ({sentRequests.length})
+          </button>
         </div>
       </div>
 
@@ -354,10 +389,10 @@ const FriendsPage = ({ currentUser }) => {
           ) : (
             <div style={{ display: "grid", gap: "1rem" }}>
               {friends.map((friend) => (
-                <div key={friend.id} className="card">
+                <div key={friend._id} className="card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <Link
-                      to={`/friend/${friend.id}`}
+                      to={`/friend/${friend._id}`}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -388,15 +423,15 @@ const FriendsPage = ({ currentUser }) => {
                             {friend.work}
                           </div>
                         )}
-                        {mutualProjects[friend.id] > 0 && (
+                        {mutualProjects[friend._id] > 0 && (
                           <div style={{ color: "var(--lz-primary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-                            {mutualProjects[friend.id]} mutual project{mutualProjects[friend.id] !== 1 ? 's' : ''}
+                            {mutualProjects[friend._id]} mutual project{mutualProjects[friend._id] !== 1 ? 's' : ''}
                           </div>
                         )}
                       </div>
                     </Link>
                     <button
-                      onClick={() => handleRemoveFriend(friend.id, friend.name)}
+                      onClick={() => handleRemoveFriend(friend._id, friend.name)}
                       style={{
                         padding: "0.5rem 1rem",
                         background: "transparent",
@@ -431,10 +466,10 @@ const FriendsPage = ({ currentUser }) => {
           ) : (
             <div style={{ display: "grid", gap: "1rem" }}>
               {friendRequests.map((request) => (
-                <div key={request.id} className="card">
+                <div key={request._id} className="card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <Link
-                      to={`/profile/${request.id}`}
+                      to={`/profile/${request._id}`}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -469,7 +504,7 @@ const FriendsPage = ({ currentUser }) => {
                     </Link>
                     <div style={{ display: "flex", gap: "0.75rem" }}>
                       <button
-                        onClick={() => handleAcceptRequest(request.id)}
+                        onClick={() => handleAcceptRequest(request._id)}
                         style={{
                           padding: "0.5rem 1.5rem",
                           background: "var(--lz-primary)",
@@ -483,7 +518,7 @@ const FriendsPage = ({ currentUser }) => {
                         Accept
                       </button>
                       <button
-                        onClick={() => handleRejectRequest(request.id)}
+                        onClick={() => handleRejectRequest(request._id)}
                         style={{
                           padding: "0.5rem 1rem",
                           background: "transparent",
@@ -497,6 +532,78 @@ const FriendsPage = ({ currentUser }) => {
                         Reject
                       </button>
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Sent Requests */}
+      {activeTab === "sent" && (
+        <div>
+          {sentRequests.length === 0 ? (
+            <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
+              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📤</div>
+              <h3 style={{ marginBottom: "0.5rem", color: "var(--lz-text-primary)" }}>No sent requests</h3>
+              <p style={{ color: "var(--lz-text-muted)" }}>
+                Friend requests you've sent will appear here
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: "1rem" }}>
+              {sentRequests.map((request) => (
+                <div key={request._id} className="card">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <Link
+                      to={`/profile/${request._id}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1rem",
+                        textDecoration: "none",
+                        flex: 1
+                      }}
+                    >
+                      <img
+                        src={request.profileImage || "/placeholder.svg"}
+                        alt={request.name}
+                        style={{
+                          width: "64px",
+                          height: "64px",
+                          borderRadius: "50%",
+                          objectFit: "cover"
+                        }}
+                      />
+                      <div>
+                        <div style={{ color: "var(--lz-text-primary)", fontWeight: "600", fontSize: "1.1rem" }}>
+                          {request.name}
+                        </div>
+                        <div style={{ color: "var(--lz-text-muted)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+                          @{request.username}
+                        </div>
+                        {request.work && (
+                          <div style={{ color: "var(--lz-text-secondary)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+                            {request.work}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => handleCancelRequest(request._id)}
+                      style={{
+                        padding: "0.5rem 1rem",
+                        background: "transparent",
+                        color: "var(--lz-text-muted)",
+                        border: "1px solid var(--lz-border)",
+                        borderRadius: "6px",
+                        fontSize: "0.875rem",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Cancel Request
+                    </button>
                   </div>
                 </div>
               ))}

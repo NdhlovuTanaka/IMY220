@@ -10,10 +10,8 @@ export const showToast = {
         color: '#fff',
         padding: '16px',
         borderRadius: '8px',
-      },
-      iconTheme: {
-        primary: '#fff',
-        secondary: '#10b981',
+        fontSize: '14px',
+        fontWeight: '500',
       },
     });
   },
@@ -27,10 +25,8 @@ export const showToast = {
         color: '#fff',
         padding: '16px',
         borderRadius: '8px',
-      },
-      iconTheme: {
-        primary: '#fff',
-        secondary: '#ef4444',
+        fontSize: '14px',
+        fontWeight: '500',
       },
     });
   },
@@ -39,12 +35,13 @@ export const showToast = {
     toast(message, {
       duration: 3500,
       position: 'top-right',
-      icon: '⚠️',
       style: {
         background: '#f59e0b',
         color: '#fff',
         padding: '16px',
         borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
       },
     });
   },
@@ -53,12 +50,13 @@ export const showToast = {
     toast(message, {
       duration: 3000,
       position: 'top-right',
-      icon: 'ℹ️',
       style: {
         background: '#3b82f6',
         color: '#fff',
         padding: '16px',
         borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
       },
     });
   },
