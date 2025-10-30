@@ -9,6 +9,10 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
 
   useEffect(() => {
     fetchUserProjects();
+    
+    // Refresh projects every 30 seconds to catch new ones
+    const interval = setInterval(fetchUserProjects, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchUserProjects = async () => {
@@ -43,21 +47,22 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
         overflowY: "auto",
       }}
     >
-      <nav style={{ padding: "1.5rem 0" }}>
+      <nav style={{ padding: "1.5rem", flex: 1 }}>
         {menuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
             style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "0.75rem 1.5rem",
-              color: isActive(item.path) ? "var(--lz-primary)" : "var(--lz-text-secondary)",
+              display: "block",
+              padding: "0.75rem 1rem",
+              marginBottom: "0.5rem",
+              background: isActive(item.path) ? "var(--lz-primary)" : "transparent",
+              color: isActive(item.path) ? "white" : "var(--lz-text-primary)",
               textDecoration: "none",
-              background: isActive(item.path) ? "rgba(139, 92, 246, 0.1)" : "transparent",
-              borderLeft: isActive(item.path) ? "3px solid var(--lz-primary)" : "3px solid transparent",
-              transition: "all 0.2s ease",
-              fontWeight: isActive(item.path) ? "600" : "400"
+              borderRadius: "6px",
+              fontSize: "0.95rem",
+              fontWeight: isActive(item.path) ? "600" : "400",
+              transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               if (!isActive(item.path)) {
@@ -73,104 +78,88 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
             {item.label}
           </Link>
         ))}
+
+        <div style={{ marginTop: "2rem" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "0.75rem 1rem",
+              color: "var(--lz-text-primary)",
+              fontWeight: "600",
+              fontSize: "0.9rem",
+              cursor: "pointer",
+            }}
+            onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
+          >
+            <span>RECENT PROJECTS</span>
+            <span style={{ fontSize: "1.2rem" }}>{isProjectsExpanded ? "▼" : "▶"}</span>
+          </div>
+
+          {isProjectsExpanded && (
+            <div style={{ marginTop: "0.5rem" }}>
+              {projects.length === 0 ? (
+                <div style={{ padding: "0.75rem 1rem", color: "var(--lz-text-muted)", fontSize: "0.875rem", fontStyle: "italic" }}>
+                  No projects yet
+                </div>
+              ) : (
+                projects.map((project) => (
+                  <Link
+                    key={project.id}
+                    to={`/project/${project.id}`}
+                    style={{
+                      display: "block",
+                      padding: "0.75rem 1rem",
+                      marginBottom: "0.25rem",
+                      color: "var(--lz-text-secondary)",
+                      textDecoration: "none",
+                      borderRadius: "6px",
+                      fontSize: "0.875rem",
+                      transition: "all 0.2s",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--lz-surface-elevated)";
+                      e.currentTarget.style.color = "var(--lz-text-primary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--lz-text-secondary)";
+                    }}
+                  >
+                    {project.name}
+                  </Link>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </nav>
 
-      <div style={{ borderTop: "1px solid var(--lz-border)", margin: "0 1rem" }} />
-
-      <div style={{ padding: "1rem 0", flex: 1 }}>
-        <button
-          onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-            padding: "0.75rem 1.5rem",
-            background: "transparent",
-            border: "none",
-            color: "var(--lz-text-secondary)",
-            fontSize: "0.875rem",
-            fontWeight: "600",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            cursor: "pointer",
-          }}
-        >
-          <span>Recent Projects</span>
-          <span style={{ transform: isProjectsExpanded ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s" }}>
-            ▼
-          </span>
-        </button>
-
-        {isProjectsExpanded && (
-          <div>
-            {projects.length === 0 ? (
-              <div
-                style={{
-                  padding: "1rem 1.5rem",
-                  color: "var(--lz-text-muted)",
-                  fontSize: "0.875rem",
-                  fontStyle: "italic",
-                }}
-              >
-                No projects yet
-              </div>
-            ) : (
-              projects.map((project) => (
-                <Link
-                  key={project.id}
-                  to={`/project/${project.id}`}
-                  style={{
-                    display: "block",
-                    padding: "0.5rem 1.5rem",
-                    color: "var(--lz-text-secondary)",
-                    textDecoration: "none",
-                    fontSize: "0.875rem",
-                    transition: "all 0.2s ease",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--lz-surface-elevated)";
-                    e.currentTarget.style.color = "var(--lz-text-primary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "var(--lz-text-secondary)";
-                  }}
-                >
-                  {project.name}
-                </Link>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      <div style={{ borderTop: "1px solid var(--lz-border)", margin: "0 1rem" }} />
-
-      <div style={{ padding: "1rem 1.5rem" }}>
+      <div style={{ padding: "1.5rem", borderTop: "1px solid var(--lz-border)" }}>
         <button
           onClick={onThemeToggle}
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             width: "100%",
-            padding: "0.75rem 1rem",
+            padding: "0.75rem",
             background: "var(--lz-surface-elevated)",
             border: "1px solid var(--lz-border)",
             borderRadius: "6px",
             color: "var(--lz-text-primary)",
+            fontSize: "0.875rem",
             cursor: "pointer",
-            transition: "all 0.2s ease",
+            transition: "all 0.2s",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--lz-primary)";
+            e.currentTarget.style.background = "var(--lz-primary)";
+            e.currentTarget.style.color = "white";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--lz-border)";
+            e.currentTarget.style.background = "var(--lz-surface-elevated)";
+            e.currentTarget.style.color = "var(--lz-text-primary)";
           }}
         >
           Toggle Theme

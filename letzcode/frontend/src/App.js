@@ -1,29 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { Toaster } from 'react-hot-toast';
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { getCurrentUser } from "./api";
 import { showToast } from "./utils/toast";
-import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
+import { Toaster } from "react-hot-toast";
+
+// Pages
 import SplashPage from "./pages/SplashPage";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
-import ProjectPage from "./pages/ProjectPage";
 import FriendsPage from "./pages/FriendsPage";
-import FriendProfilePage from "./pages/FriendProfilePage";
 import HistoryPage from "./pages/HistoryPage";
+import ProjectPage from "./pages/ProjectPage";
+
+// Components
+import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light"); // Changed default to light
   const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
     
-    const savedTheme = localStorage.getItem("theme") || "dark";
+    // Default to light mode if no preference is saved
+    const savedTheme = localStorage.getItem("theme") || "light";
     setTheme(savedTheme);
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
@@ -111,21 +115,19 @@ function App() {
               <Routes>
                 <Route path="/home" element={<HomePage currentUser={currentUser} />} />
                 <Route path="/profile/:userId" element={<ProfilePage currentUser={currentUser} />} />
-                <Route path="/project/:projectId" element={<ProjectPage currentUser={currentUser} />} />
                 <Route path="/friends" element={<FriendsPage currentUser={currentUser} />} />
-                <Route path="/friend/:friendId" element={<FriendProfilePage currentUser={currentUser} />} />
-                <Route path="/history" element={<HistoryPage />} />
-                <Route path="*" element={<Navigate to="/home" replace />} />
+                <Route path="/history" element={<HistoryPage currentUser={currentUser} />} />
+                <Route path="/project/:projectId" element={<ProjectPage currentUser={currentUser} />} />
+                <Route path="*" element={<HomePage currentUser={currentUser} />} />
               </Routes>
             </div>
           </div>
         </>
       )}
-
+      
       {!isAuthenticated && (
         <Routes>
-          <Route path="/" element={<SplashPage onLogin={handleLogin} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<SplashPage onLogin={handleLogin} />} />
         </Routes>
       )}
     </div>

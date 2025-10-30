@@ -43,7 +43,7 @@ const authenticate = async (req, res, next) => {
 // @access  Private
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, description, type, languages, version, files } = req.body;
+    const { name, description, type, languages, version, filesInfo } = req.body;
 
     // Validation
     if (!name || !description || !type) {
@@ -51,6 +51,17 @@ router.post('/', authenticate, async (req, res) => {
         ok: false,
         message: 'Please provide name, description, and type'
       });
+    }
+
+    // Convert filesInfo to files array if provided
+    let files = [];
+    if (filesInfo && Array.isArray(filesInfo)) {
+      files = filesInfo.map(fileInfo => ({
+        name: fileInfo.name,
+        size: fileInfo.size,
+        path: `/${fileInfo.name}`,
+        uploadedBy: req.user._id
+      }));
     }
 
     // Create project
@@ -62,7 +73,7 @@ router.post('/', authenticate, async (req, res) => {
       type,
       languages: languages || [],
       version: version || '1.0.0',
-      files: files || []
+      files: files
     });
 
     await project.save();
