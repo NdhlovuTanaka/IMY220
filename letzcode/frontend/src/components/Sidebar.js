@@ -14,7 +14,7 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
   const fetchUserProjects = async () => {
     const data = await getProjects("my");
     if (data.ok) {
-      setProjects(data.projects.slice(0, 5)); // Show only 5 recent projects
+      setProjects(data.projects.slice(0, 5));
     }
   };
 
@@ -23,10 +23,10 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
   };
 
   const menuItems = [
-    { path: "/home", icon: "🏠", label: "Home" },
-    { path: `/profile/${currentUser?.id}`, icon: "👤", label: "Profile" },
-    { path: "/friends", icon: "👥", label: "Friends" },
-    { path: "/history", icon: "📜", label: "History" },
+    { path: "/home", label: "Home" },
+    { path: `/profile/${currentUser?.id}`, label: "Profile" },
+    { path: "/friends", label: "Friends" },
+    { path: "/history", label: "History" },
   ];
 
   return (
@@ -43,7 +43,6 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
         overflowY: "auto",
       }}
     >
-      {/* Main Navigation */}
       <nav style={{ padding: "1.5rem 0" }}>
         {menuItems.map((item) => (
           <Link
@@ -52,13 +51,13 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.75rem",
               padding: "0.75rem 1.5rem",
               color: isActive(item.path) ? "var(--lz-primary)" : "var(--lz-text-secondary)",
               textDecoration: "none",
               background: isActive(item.path) ? "rgba(139, 92, 246, 0.1)" : "transparent",
               borderLeft: isActive(item.path) ? "3px solid var(--lz-primary)" : "3px solid transparent",
               transition: "all 0.2s ease",
+              fontWeight: isActive(item.path) ? "600" : "400"
             }}
             onMouseEnter={(e) => {
               if (!isActive(item.path)) {
@@ -71,15 +70,13 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
               }
             }}
           >
-            <span style={{ fontSize: "1.25rem" }}>{item.icon}</span>
-            <span style={{ fontWeight: isActive(item.path) ? "600" : "400" }}>{item.label}</span>
+            {item.label}
           </Link>
         ))}
       </nav>
 
       <div style={{ borderTop: "1px solid var(--lz-border)", margin: "0 1rem" }} />
 
-      {/* Recent Projects */}
       <div style={{ padding: "1rem 0", flex: 1 }}>
         <button
           onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
@@ -124,14 +121,15 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
                   key={project.id}
                   to={`/project/${project.id}`}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.75rem",
+                    display: "block",
                     padding: "0.5rem 1.5rem",
                     color: "var(--lz-text-secondary)",
                     textDecoration: "none",
                     fontSize: "0.875rem",
                     transition: "all 0.2s ease",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "var(--lz-surface-elevated)";
@@ -142,16 +140,7 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
                     e.currentTarget.style.color = "var(--lz-text-secondary)";
                   }}
                 >
-                  <span style={{ fontSize: "1rem" }}>📁</span>
-                  <span
-                    style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {project.name}
-                  </span>
+                  {project.name}
                 </Link>
               ))
             )}
@@ -161,14 +150,13 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
 
       <div style={{ borderTop: "1px solid var(--lz-border)", margin: "0 1rem" }} />
 
-      {/* Theme Toggle */}
       <div style={{ padding: "1rem 1.5rem" }}>
         <button
           onClick={onThemeToggle}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "0.75rem",
+            justifyContent: "center",
             width: "100%",
             padding: "0.75rem 1rem",
             background: "var(--lz-surface-elevated)",
@@ -185,8 +173,7 @@ const Sidebar = ({ currentUser, onThemeToggle }) => {
             e.currentTarget.style.borderColor = "var(--lz-border)";
           }}
         >
-          <span style={{ fontSize: "1.25rem" }}>🎨</span>
-          <span>Toggle Theme</span>
+          Toggle Theme
         </button>
       </div>
     </aside>

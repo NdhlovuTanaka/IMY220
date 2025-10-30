@@ -12,6 +12,8 @@
     "build:backend": "babel backend/src -d backend/dist --copy-files",
     "start": "npm run build && node backend/src/server.js",
     "start:prod": "node backend/dist/server.js",
+    "init-db": "node backend/src/scripts/initDB.js",
+    "seed-db": "node backend/src/scripts/seedDB.js",
     "clean": "rimraf frontend/public/bundle.js backend/dist",
     "lint": "eslint frontend/src backend/src --ext .js,.jsx",
     "lint:fix": "eslint frontend/src backend/src --ext .js,.jsx --fix",

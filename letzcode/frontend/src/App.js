@@ -9,6 +9,9 @@ import SplashPage from "./pages/SplashPage";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import ProjectPage from "./pages/ProjectPage";
+import FriendsPage from "./pages/FriendsPage";
+import FriendProfilePage from "./pages/FriendProfilePage";
+import HistoryPage from "./pages/HistoryPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,7 +23,6 @@ function App() {
   useEffect(() => {
     checkAuth();
     
-    // Load theme preference
     const savedTheme = localStorage.getItem("theme") || "dark";
     setTheme(savedTheme);
     document.documentElement.setAttribute("data-theme", savedTheme);
@@ -46,7 +48,6 @@ function App() {
     localStorage.setItem("token", userData.token);
     localStorage.setItem("userId", userData.user.id);
     
-    // Redirect to profile page if profile is incomplete
     if (!userData.user.profileCompleted) {
       navigate(`/profile/${userData.user.id}`);
     } else {
@@ -70,9 +71,7 @@ function App() {
   };
 
   const handleSearch = (searchTerm) => {
-    showToast.info(`Searching for: ${searchTerm}`);
-    // TODO: Implement search functionality
-    // navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+    navigate(`/friends?search=${encodeURIComponent(searchTerm)}`);
   };
 
   if (isLoading) {
@@ -108,11 +107,14 @@ function App() {
               currentUser={currentUser}
               onThemeToggle={handleThemeToggle}
             />
-            <div style={{ flex: 1, minHeight: "calc(100vh - 64px)" }}>
+            <div style={{ flex: 1, minHeight: "calc(100vh - 64px)", padding: "2rem" }}>
               <Routes>
                 <Route path="/home" element={<HomePage currentUser={currentUser} />} />
                 <Route path="/profile/:userId" element={<ProfilePage currentUser={currentUser} />} />
                 <Route path="/project/:projectId" element={<ProjectPage currentUser={currentUser} />} />
+                <Route path="/friends" element={<FriendsPage currentUser={currentUser} />} />
+                <Route path="/friend/:friendId" element={<FriendProfilePage currentUser={currentUser} />} />
+                <Route path="/history" element={<HistoryPage />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>
             </div>

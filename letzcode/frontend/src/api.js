@@ -407,3 +407,210 @@ export async function getActivityFeed(type = "local", sort = "date", limit = 50)
         };
     }
 }
+
+// Friend APIs
+export async function sendFriendRequest(userId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/friends/request", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to send friend request"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Send friend request error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function acceptFriendRequest(userId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/friends/accept", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to accept friend request"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Accept friend request error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function rejectFriendRequest(userId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/friends/reject", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to reject friend request"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Reject friend request error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function removeFriend(friendId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/friends/${friendId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to remove friend"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Remove friend error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function getFriends() {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/friends", {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to fetch friends"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Get friends error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function searchUsers(query) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/friends/search?query=${encodeURIComponent(query)}`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to search users"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Search users error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}
+
+export async function getMutualData(friendId) {
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/friends/${friendId}/mutual`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return {
+                ok: false,
+                message: data.message || "Failed to fetch mutual data"
+            };
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("Get mutual data error:", error);
+        return {
+            ok: false,
+            message: "Network error"
+        };
+    }
+}

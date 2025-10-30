@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const projectRoutes = require('./routes/projects');
 const activityRoutes = require('./routes/activity');
+const friendRoutes = require('./routes/friends');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/friends', friendRoutes);
 
 // Serve static frontend files
 const publicDir = path.join(__dirname, "..", "..", "frontend", "public");
@@ -29,7 +31,6 @@ app.use(express.static(publicDir));
 
 // Fallback for client-side routing
 app.get("*", (req, res) => {
-    // Don't serve index.html for API routes
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ message: 'API endpoint not found' });
     }
@@ -38,5 +39,5 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT || 3500;
 app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}/`);
+    console.log(`Server is running on http://localhost:${PORT}/`);
 });
