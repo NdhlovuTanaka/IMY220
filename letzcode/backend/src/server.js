@@ -1,32 +1,42 @@
+require('dotenv').config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+const connectDB = require('./config/database');
+const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profile');
+const projectRoutes = require('./routes/projects');
+const activityRoutes = require('./routes/activity');
 
 const app = express();
+
+// Connect to MongoDB
+connectDB();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-//Setting a Static Frontend
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/activity', activityRoutes);
+
+// Serve static frontend files
 const publicDir = path.join(__dirname, "..", "..", "frontend", "public");
 app.use(express.static(publicDir));
 
-//Auth --stubs--
-app.post("/api/auth/signin", (req, res) => {
-    const {email} = req.body || {};
-    return res.json({ok: true, token: "dummy-token", user : {id: "u123", email}});
-});
-
-app.post("/api/auth/signup", (req, res) => {
-    const {email} = req.body || {};
-    return res.json({ok: true, token: "dummy-token", user : {id: "u999", email}});
-});
-
-//fall back for client routing
+// Fallback for client-side routing
 app.get("*", (req, res) => {
+    // Don't serve index.html for API routes
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ message: 'API endpoint not found' });
+    }
     res.sendFile(path.join(publicDir, "index.html"));
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3500;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on http://localhost:${PORT}/`);
 });

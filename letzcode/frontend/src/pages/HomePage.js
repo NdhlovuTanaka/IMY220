@@ -1,190 +1,298 @@
-import React from "react"
-import { useState } from "react"
-import Feed from "../components/Feed"
-import SearchInput from "../components/SearchInput"
-import CreateProjectForm from "../components/project/CreateProjectForm"
+import React, { useState, useEffect } from "react";
+import { getActivityFeed } from "../api";
+import { showToast } from "../utils/toast";
+import ProjectPreview from "../components/project/ProjectPreview";
+import { Link } from "react-router-dom";
 
 const HomePage = ({ currentUser }) => {
-  const [activeFeed, setActiveFeed] = useState("local")
-  const [searchResults, setSearchResults] = useState(null)
-  const [showCreateProjectForm, setShowCreateProjectForm] = useState(false)
+  const [activeTab, setActiveTab] = useState("local");
+  const [activities, setActivities] = useState([]);
+  const [sortBy, setSortBy] = useState("date");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSearch = (searchTerm) => {
-    // Simulate search functionality
-    console.log("Searching for:", searchTerm)
-    // For now, just show a message
-    setSearchResults(`Search results for "${searchTerm}" - Feature coming soon!`)
-  }
+  useEffect(() => {
+    fetchActivities();
+  }, [activeTab, sortBy]);
 
-  const handleCreateProject = () => {
-    setShowCreateProjectForm(true)
-  }
+  const fetchActivities = async () => {
+    setIsLoading(true);
+    const data = await getActivityFeed(activeTab, sortBy);
+    
+    if (data.ok) {
+      setActivities(data.activities);
+    } else {
+      showToast.error(data.message || "Failed to load activity feed");
+    }
+    
+    setIsLoading(false);
+  };
 
-  const handleCancelCreateProject = () => {
-    setShowCreateProjectForm(false)
-  }
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case "check-in":
+        return "📥";
+      case "check-out":
+        return "📤";
+      case "create":
+        return "✨";
+      case "update":
+        return "✏️";
+      case "delete":
+        return "🗑️";
+      default:
+        return "📋";
+    }
+  };
 
-  const handleSaveProject = (projectData) => {
-    console.log("Project Created:", projectData)
-    setShowCreateProjectForm(false)
-  }
+  const getActivityText = (activity) => {
+    switch (activity.type) {
+      case "check-in":
+        return (
+          <>
+            checked in <Link to={`/project/${activity.project._id}`} style={{ color: "var(--lz-primary)" }}>"{activity.project.name}"</Link>
+          </>
+        );
+      case "check-out":
+        return (
+          <>
+            checked out <Link to={`/project/${activity.project._id}`} style={{ color: "var(--lz-primary)" }}>"{activity.project.name}"</Link>
+          </>
+        );
+      case "create":
+        return (
+          <>
+            created new project <Link to={`/project/${activity.project._id}`} style={{ color: "var(--lz-primary)" }}>"{activity.project.name}"</Link>
+          </>
+        );
+      case "update":
+        return (
+          <>
+            updated <Link to={`/project/${activity.project._id}`} style={{ color: "var(--lz-primary)" }}>"{activity.project.name}"</Link>
+          </>
+        );
+      case "delete":
+        return `deleted project "${activity.project?.name}"`;
+      default:
+        return (
+          <>
+            made changes to <Link to={`/project/${activity.project._id}`} style={{ color: "var(--lz-primary)" }}>"{activity.project.name}"</Link>
+          </>
+        );
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000); // seconds
+
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} days ago`;
+    
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   return (
-    <main>
+    <main style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ marginBottom: "1rem" }}>Welcome back, {currentUser?.name || "Developer"}!</h1>
-
-        <SearchInput onSearch={handleSearch} />
-
-        {searchResults && (
-          <div className="card" style={{ marginBottom: "1rem", background: "#1a1a2e" }}>
-            <p style={{ margin: 0, color: "var(--lz-muted)" }}>{searchResults}</p>
-            <button
-              onClick={() => setSearchResults(null)}
-              style={{
-                marginTop: "0.5rem",
-                background: "transparent",
-                border: "1px solid var(--lz-muted)",
-                padding: "0.25rem 0.5rem",
-                fontSize: "0.875rem",
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        )}
+        <h1 style={{ marginBottom: "0.5rem", fontSize: "2rem", color: "var(--lz-text-primary)" }}>
+          Welcome back, {currentUser?.name || "Developer"}! 👋
+        </h1>
+        <p style={{ color: "var(--lz-text-muted)", fontSize: "1rem" }}>
+          Stay up to date with your projects and collaborations
+        </p>
       </div>
 
-      <div style={{ marginBottom: "2rem" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1.5rem",
-            padding: "1rem",
-            background: "var(--lz-surface)",
-            borderRadius: "12px",
-            border: "1px solid var(--lz-border)",
-          }}
-        >
-          <div>
-            <h2
-              style={{
-                margin: "0 0 0.5rem 0",
-                fontSize: "1.25rem",
-                color: "var(--lz-text-primary)",
-              }}
-            >
-              Your Projects
-            </h2>
-            <p
-              style={{
-                margin: 0,
-                color: "var(--lz-text-secondary)",
-                fontSize: "0.875rem",
-              }}
-            >
-              Create and manage your code repositories
-            </p>
-          </div>
+      {/* Tabs and Sort */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "1.5rem",
+          borderBottom: "2px solid var(--lz-border)",
+        }}
+      >
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
-            onClick={handleCreateProject}
+            onClick={() => setActiveTab("local")}
             style={{
-              background: "linear-gradient(135deg, var(--lz-primary) 0%, #3b82f6 100%)",
-              color: "white",
               padding: "0.75rem 1.5rem",
-              borderRadius: "10px",
+              background: "transparent",
               border: "none",
-              cursor: "pointer",
-              fontSize: "0.95rem",
+              borderBottom: activeTab === "local" ? "3px solid var(--lz-primary)" : "3px solid transparent",
+              color: activeTab === "local" ? "var(--lz-primary)" : "var(--lz-text-secondary)",
+              fontSize: "1rem",
               fontWeight: "600",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              boxShadow: "0 4px 12px rgba(74, 144, 226, 0.3)",
-              transition: "all 0.2s ease",
-            }}
-            onMouseOver={(e) => {
-              e.target.style.transform = "translateY(-2px)"
-              e.target.style.boxShadow = "0 6px 20px rgba(74, 144, 226, 0.4)"
-            }}
-            onMouseOut={(e) => {
-              e.target.style.transform = "translateY(0)"
-              e.target.style.boxShadow = "0 4px 12px rgba(74, 144, 226, 0.3)"
-            }}
-          >
-            <span style={{ fontSize: "1.1rem" }}>+</span>
-            New Project
-          </button>
-        </div>
-
-        {showCreateProjectForm && (
-          <div
-            style={{
-              marginBottom: "2rem",
-              background: "var(--lz-surface)",
-              borderRadius: "12px",
-              border: "1px solid var(--lz-border)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "1rem 1.5rem",
-                borderBottom: "1px solid var(--lz-border)",
-                background: "var(--lz-background)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  color: "var(--lz-text-primary)",
-                  fontSize: "1.1rem",
-                }}
-              >
-                Create New Project
-              </h3>
-            </div>
-            <div style={{ padding: "1.5rem" }}>
-              <CreateProjectForm onSave={handleSaveProject} onCancel={handleCancelCreateProject} />
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
-          <button
-            onClick={() => setActiveFeed("local")}
-            style={{
-              background: activeFeed === "local" ? "var(--lz-primary)" : "transparent",
-              border: "1px solid var(--lz-primary)",
-              color: activeFeed === "local" ? "white" : "var(--lz-text-secondary)",
-              padding: "0.5rem 1rem",
-              borderRadius: "6px",
               cursor: "pointer",
+              transition: "all 0.2s",
+              marginBottom: "-2px",
             }}
           >
             My Feed
           </button>
           <button
-            onClick={() => setActiveFeed("global")}
+            onClick={() => setActiveTab("global")}
             style={{
-              background: activeFeed === "global" ? "var(--lz-primary)" : "transparent",
-              border: "1px solid var(--lz-primary)",
-              color: activeFeed === "global" ? "white" : "var(--lz-text-secondary)",
-              padding: "0.5rem 1rem",
-              borderRadius: "6px",
+              padding: "0.75rem 1.5rem",
+              background: "transparent",
+              border: "none",
+              borderBottom: activeTab === "global" ? "3px solid var(--lz-primary)" : "3px solid transparent",
+              color: activeTab === "global" ? "var(--lz-primary)" : "var(--lz-text-secondary)",
+              fontSize: "1rem",
+              fontWeight: "600",
               cursor: "pointer",
+              transition: "all 0.2s",
+              marginBottom: "-2px",
             }}
           >
             Global Feed
           </button>
         </div>
 
-        <Feed feedType={activeFeed} currentUser={currentUser} />
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          style={{
+            padding: "0.5rem 1rem",
+            background: "var(--lz-surface)",
+            border: "1px solid var(--lz-border)",
+            borderRadius: "6px",
+            color: "var(--lz-text-primary)",
+            fontSize: "0.9rem",
+            cursor: "pointer",
+          }}
+        >
+          <option value="date">Sort by Date</option>
+          <option value="popularity">Sort by Popularity</option>
+        </select>
       </div>
-    </main>
-  )
-}
 
-export default HomePage
+      {/* Activity Feed */}
+      {isLoading ? (
+        <div style={{ textAlign: "center", padding: "3rem", color: "var(--lz-text-muted)" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>⏳</div>
+          Loading {activeTab === "local" ? "your" : "global"} activity...
+        </div>
+      ) : activities.length === 0 ? (
+        <div
+          className="card"
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "var(--lz-text-muted)",
+          }}
+        >
+          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📭</div>
+          <h3 style={{ marginBottom: "0.5rem", color: "var(--lz-text-primary)" }}>No activity yet</h3>
+          <p>
+            {activeTab === "local"
+              ? "Start by creating a project or connecting with friends!"
+              : "Be the first to create a project!"}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: "1rem" }}>
+          {activities.map((activity) => (
+            <div key={activity._id} className="card">
+              <div style={{ display: "flex", alignItems: "start", gap: "1rem", marginBottom: "1rem" }}>
+                <div
+                  style={{
+                    fontSize: "2rem",
+                    padding: "0.5rem",
+                    background: "var(--lz-surface)",
+                    borderRadius: "8px",
+                  }}
+                >
+                  {getActivityIcon(activity.type)}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+                    <Link to={`/profile/${activity.user._id}`} style={{ textDecoration: "none" }}>
+                      <img
+                        src={activity.user.profileImage || "/placeholder.svg"}
+                        alt={activity.user.name}
+                        style={{
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </Link>
+                    <div>
+                      <p style={{ margin: 0, color: "var(--lz-text-primary)", fontSize: "0.95rem" }}>
+                        <Link to={`/profile/${activity.user._id}`} style={{ fontWeight: "600", color: "var(--lz-text-primary)", textDecoration: "none" }}>
+                          {activity.user.name}
+                        </Link>{" "}
+                        {getActivityText(activity)}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--lz-text-muted)" }}>
+                        {formatDate(activity.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {activity.message && (
+                    <div
+                      style={{
+                        padding: "0.75rem",
+                        background: "var(--lz-surface)",
+                        borderLeft: "3px solid var(--lz-primary)",
+                        borderRadius: "4px",
+                        marginBottom: "1rem",
+                        fontStyle: "italic",
+                        color: "var(--lz-text-secondary)",
+                      }}
+                    >
+                      "{activity.message}"
+                    </div>
+                  )}
+
+                  {activity.version && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "0.25rem 0.5rem",
+                        background: "var(--lz-primary)",
+                        color: "white",
+                        borderRadius: "4px",
+                        fontSize: "0.75rem",
+                        fontWeight: "600",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      v{activity.version}
+                    </span>
+                  )}
+
+                  {activity.project && (
+                    <ProjectPreview project={{
+                      id: activity.project._id,
+                      name: activity.project.name,
+                      description: activity.project.description,
+                      image: activity.project.image,
+                      languages: activity.project.languages,
+                      type: activity.project.type,
+                      status: activity.project.status,
+                      owner: activity.project.owner,
+                    }} />
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+};
+
+export default HomePage;

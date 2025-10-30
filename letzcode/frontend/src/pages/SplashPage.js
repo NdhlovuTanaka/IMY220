@@ -6,14 +6,8 @@ export default function SplashPage({ onLogin }) {
     const [activeForm, setActiveForm] = useState("signin");
 
     function handleSuccess(data) {
-        // Pass the user data to the App component
-        const userData = {
-            id: data.user?.id || "u123",
-            name: data.user?.name || data.user?.email || "User",
-            email: data.user?.email,
-            token: data.token
-        };
-        onLogin(userData);
+        // Pass the complete user data directly
+        onLogin(data);
     }
 
     return (
@@ -145,7 +139,7 @@ export default function SplashPage({ onLogin }) {
                     color: "var(--lz-muted)",
                 }}
             >
-                <p>&copy; 2025 LetzCode. .</p>
+                <p>&copy; 2025 LetzCode</p>
             </footer>
         </div>
     );

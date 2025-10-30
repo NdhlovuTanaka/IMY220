@@ -8,13 +8,16 @@ const EditProfileForm = ({ user, onSave, onCancel }) => {
     bio: user.bio || "",
     location: user.location || "",
     website: user.website || "",
-    birthday: user.birthday || "",
+    birthday: user.birthday ? user.birthday.split('T')[0] : "",
     work: user.work || "",
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSave(formData)
+    
+    // Don't send username in the update (it's locked)
+    const { username, ...updateData } = formData;
+    onSave(updateData)
   }
 
   const handleChange = (e) => {
@@ -26,7 +29,7 @@ const EditProfileForm = ({ user, onSave, onCancel }) => {
   }
 
   return (
-    <div className="card">
+    <div className="card" style={{ marginBottom: "2rem" }}>
       <h3 style={{ marginBottom: "1.5rem" }}>Edit Profile</h3>
 
       <form onSubmit={handleSubmit}>
@@ -37,14 +40,30 @@ const EditProfileForm = ({ user, onSave, onCancel }) => {
           </div>
 
           <div>
-            <label htmlFor="edit-username">Username</label>
+            <label htmlFor="edit-username">
+              Username 
+              <span style={{ 
+                marginLeft: "0.5rem", 
+                fontSize: "0.75rem", 
+                color: "var(--lz-muted)",
+                fontWeight: "normal"
+              }}>
+                (Cannot be changed)
+              </span>
+            </label>
             <input
               type="text"
               id="edit-username"
               name="username"
               value={formData.username}
-              onChange={handleChange}
-              required
+              disabled
+              style={{
+                background: "var(--lz-surface)",
+                color: "var(--lz-text-muted)",
+                cursor: "not-allowed",
+                opacity: 0.7
+              }}
+              title="Username cannot be changed after account creation"
             />
           </div>
         </div>
@@ -58,7 +77,11 @@ const EditProfileForm = ({ user, onSave, onCancel }) => {
             onChange={handleChange}
             rows="3"
             placeholder="Tell us about yourself..."
+            maxLength={500}
           />
+          <small style={{ color: "var(--lz-muted)", fontSize: "0.75rem" }}>
+            {formData.bio.length}/500 characters
+          </small>
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -107,13 +130,13 @@ const EditProfileForm = ({ user, onSave, onCancel }) => {
         </div>
 
         <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
-          <button type="submit">Save Changes</button>
+          <button type="submit">💾 Save Changes</button>
           <button
             type="button"
             onClick={onCancel}
             style={{ background: "transparent", border: "1px solid var(--lz-muted)" }}
           >
-            Cancel
+            ✕ Cancel
           </button>
         </div>
       </form>
